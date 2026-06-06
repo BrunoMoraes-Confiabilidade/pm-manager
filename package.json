@@ -1,0 +1,12 @@
+{
+  "name": "pm-manager",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PM Manager — Gestão de Manutenção (módulo PM). App estático + backend de envio agendado do Relatório Farol DCS.",
+  "scripts": {
+    "test-cron-local": "node -e \"console.log('Use o endpoint /api/send-farol-report na Vercel. Localmente, configure as variáveis e rode com vercel dev.')\""
+  },
+  "dependencies": {
+    "resend": "^4.0.0"
+  }
+}
