@@ -188,14 +188,24 @@ module.exports = async function handler(req, res) {
       const subject = `Relatório Farol DCS — ${comp.name || cid} — ${now.dateStr}`;
 
       try {
-        // Envia para todos os destinatários (BCC para preservar privacidade da lista)
-        const sendRes = await resend.emails.send({
+        // Modo de teste (remetente onboarding@resend.dev, sem domínio verificado):
+        // o Resend só entrega para o e-mail DONO da conta e descarta BCC.
+        // Então enviamos direto no "to". Com domínio verificado, usamos BCC
+        // para preservar a privacidade da lista de destinatários.
+        const isTestSender = /onboarding@resend\.dev/i.test(fromEmail);
+        const payload = {
           from: fromEmail,
-          to: [fromEmail.match(/<(.+)>/) ? fromEmail.match(/<(.+)>/)[1] : fromEmail], // remetente como "to"
-          bcc: emails,
           subject,
           html: `<div style="background:#f8fafc;padding:16px">${html}</div>`,
-        });
+        };
+        if (isTestSender) {
+          payload.to = emails;           // entrega direta (modo teste)
+        } else {
+          const senderAddr = fromEmail.match(/<(.+)>/) ? fromEmail.match(/<(.+)>/)[1] : fromEmail;
+          payload.to = [senderAddr];     // remetente como destinatário visível
+          payload.bcc = emails;          // lista real em cópia oculta
+        }
+        const sendRes = await resend.emails.send(payload);
         if (sendRes && sendRes.error) throw new Error(JSON.stringify(sendRes.error));
 
         // registra envio
