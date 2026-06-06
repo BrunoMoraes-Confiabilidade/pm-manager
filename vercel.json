@@ -1,0 +1,13 @@
+{
+  "crons": [
+    {
+      "path": "/api/send-farol-report",
+      "schedule": "0 11 * * *"
+    }
+  ],
+  "functions": {
+    "api/send-farol-report.js": {
+      "maxDuration": 60
+    }
+  }
+}
