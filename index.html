@@ -31,11 +31,11 @@ input,textarea,button,select{font-family:inherit}
 /* ── Tema Simples ──
    Usa o mesmo princípio do tema claro (inversão de luminância, 100% legível),
    porém mais branco/limpo e SEM foto de fundo, texturas, brilhos ou animações.
-   O destaque das cores de status é preservado (re-invertido junto da mídia). */
+   O destaque das cores de status é preservado (re-invertido junto da mídia).
+   IMPORTANTE: não definir background claro aqui — a inversão o tornaria escuro.
+   Deixamos o fundo escuro do body ser invertido para claro, como no tema claro. */
 .app.simple-theme{filter:invert(0.95) hue-rotate(180deg) saturate(1.1) contrast(0.98)}
 .app.simple-theme img,.app.simple-theme .bg-photo,.app.simple-theme .keep-color{filter:invert(1) hue-rotate(180deg) saturate(0.91) contrast(1.02)}
-.app.simple-theme .bg-texture,.app.simple-theme .bg-grad{display:none!important}
-.app.simple-theme{background:#FAFBFC!important}
 /* menos poluição: sem animações de flutuar/pulsar e sem brilhos */
 .app.simple-theme .dash-card .icon{animation:none!important}
 .app.simple-theme .dash-card:hover{transform:none!important}
