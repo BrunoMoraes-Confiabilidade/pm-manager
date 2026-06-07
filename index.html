@@ -432,7 +432,8 @@ const A3_BLANK={titulo:"",lider:"",participantes:[""],contexto:"",problema:"",in
 const[a3Form,setA3Form]=useState(A3_BLANK);
 const[inspSort,setInspSort]=useState({col:"",dir:"asc"});const[farolSort,setFarolSort]=useState({col:"",dir:"asc"});
 const[farolArea,setFarolArea]=useState("");const[farolSubArea,setFarolSubArea]=useState("");const[farolDenom,setFarolDenom]=useState("");
-const[hiddenCols,setHiddenCols]=useState({});const[showColMenu,setShowColMenu]=useState(false);const[farolHiddenCols,setFarolHiddenCols]=useState({});const[showFarolColMenu,setShowFarolColMenu]=useState(false);
+const DCS_DEFAULT_HIDDEN={uid:true,terminal:true,area:true,subArea:true,local:true,sistema:true};
+const[hiddenCols,setHiddenCols]=useState({...DCS_DEFAULT_HIDDEN});const[showColMenu,setShowColMenu]=useState(false);const[farolHiddenCols,setFarolHiddenCols]=useState({...DCS_DEFAULT_HIDDEN});const[showFarolColMenu,setShowFarolColMenu]=useState(false);
 const[inspStatusFilter,setInspStatusFilter]=useState("");const[inspTerminal,setInspTerminal]=useState("");const[inspArea,setInspArea]=useState("");const[inspSubArea,setInspSubArea]=useState("");const[inspLocal,setInspLocal]=useState("");const[inspDenom,setInspDenom]=useState("");const[inspTipo,setInspTipo]=useState("");const[inspSolic,setInspSolic]=useState("");
 const[farolTerminal,setFarolTerminal]=useState("");const[farolLocal,setFarolLocal]=useState("");const[farolTipo,setFarolTipo]=useState("");const[farolSolic,setFarolSolic]=useState("");
 const logoRef=useRef(null);
@@ -1176,7 +1177,7 @@ if(phase==="loading")return<div className="app" style={{display:"flex",alignItem
 
 // ═══ DASHBOARD ═══
 if(phase==="dashboard"&&loggedUser&&currentCompany)return(
-<div className={"app"+(theme==="light"?" light-theme":"")+(theme==="simple"?" simple-theme":"")}>{bgImage&&theme!=="simple"?<><div className="bg-photo" style={{position:"fixed",inset:0,zIndex:0,backgroundImage:`url(${bgImage})`,backgroundSize:"cover",backgroundPosition:"center",backgroundAttachment:"fixed"}}/><div style={{position:"fixed",inset:0,zIndex:0,background:"rgba(8,14,28,.82)"}}/></>:<><div className="bg-texture"/><div className="bg-grad"/></>}
+<div className={"app"+(theme==="light"?" light-theme":"")+(theme==="simple"?" simple-theme":"")}>{bgImage?<><div className="bg-photo" style={{position:"fixed",inset:0,zIndex:0,backgroundImage:`url(${bgImage})`,backgroundSize:"cover",backgroundPosition:"center",backgroundAttachment:"fixed"}}/><div style={{position:"fixed",inset:0,zIndex:0,background:"rgba(8,14,28,.82)"}}/></>:<><div className="bg-texture"/><div className="bg-grad"/></>}
 {toast&&<Toast msg={toast.msg} type={toast.type} onClose={()=>setToast(null)}/>}
 <div className="dashboard">
 <div className="dash-header">
