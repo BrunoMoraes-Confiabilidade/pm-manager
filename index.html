@@ -39,8 +39,29 @@ input,textarea,button,select{font-family:inherit}
 /* menos poluição: sem animações de flutuar/pulsar e sem brilhos */
 .app.simple-theme .dash-card .icon{animation:none!important}
 .app.simple-theme .dash-card:hover{transform:none!important}
-/* no tema simples, deixa a foto de fundo mais perceptível (overlay mais leve) */
-.app.simple-theme .bg-photo-overlay{background:rgba(8,14,28,.55)!important}
+/* no tema simples: foto de fundo discreta (overlay mais forte) para os cards se destacarem */
+.app.simple-theme .bg-photo-overlay{background:rgba(8,14,28,.88)!important}
+/* cards/painéis SÓLIDOS no tema simples (sob inversão, dark sólido vira claro sólido),
+   para destacarem do plano de fundo e melhorar a leitura */
+.app.simple-theme [style*="rgba(15,23,42,.3"],
+.app.simple-theme [style*="rgba(15,23,42,.4"],
+.app.simple-theme [style*="rgba(15,23,42,.5"],
+.app.simple-theme [style*="rgba(15,23,42,.6"],
+.app.simple-theme [style*="rgba(15,23,42,.7"],
+.app.simple-theme [style*="rgba(15,23,42,.8"],
+.app.simple-theme [style*="rgba(11,25,41"],
+.app.simple-theme [style*="rgba(8,14,28"]:not(.bg-photo-overlay),
+.app.simple-theme .dash-card{
+  background-color:#0e1d33!important;
+  background-image:none!important;
+  border:1px solid #24405f!important;
+  box-shadow:0 4px 16px rgba(0,0,0,.45)!important;
+  backdrop-filter:none!important;
+}
+/* o medidor/gauge e gradientes de painel também sólidos */
+.app.simple-theme [style*="linear-gradient(135deg,rgba(15,23,42"]{
+  background:#0e1d33!important;background-image:none!important;
+}
 /* ── Tamanho de fonte (P/M/G) ── escala proporcional de toda a interface.
    P = padrão (100%). M e G aumentam tudo de forma proporcional. */
 .app.fs-p{zoom:1}
