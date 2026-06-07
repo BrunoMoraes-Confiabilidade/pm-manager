@@ -789,10 +789,10 @@ const turnoColor={A:"#60A5FA",B:"#22C55E",C:"#F59E0B",D:"#A855F7"};
 const turnoBg={A:"rgba(59,130,246,.15)",B:"rgba(34,197,94,.15)",C:"rgba(245,158,11,.15)",D:"rgba(168,85,247,.15)"};
 
 // ─── DCS - Dispositivos Críticos de Segurança ───
-const DCS_STATUS=["Conforme","Não Conforme","Melhoria Necessária"];
-const dcsStatusColor={"Conforme":"#22C55E","Não Conforme":"#EF4444","Melhoria Necessária":"#F59E0B"};
-const dcsStatusBg={"Conforme":"rgba(34,197,94,.12)","Não Conforme":"rgba(239,68,68,.12)","Melhoria Necessária":"rgba(245,158,11,.12)"};
-const dcsStatusIcon={"Conforme":"✅","Não Conforme":"⚠","Melhoria Necessária":"🔧"};
+const DCS_STATUS=["Conforme","Não Conforme","Melhoria Necessária","Em Avaliação em Campo"];
+const dcsStatusColor={"Conforme":"#22C55E","Não Conforme":"#EF4444","Melhoria Necessária":"#F59E0B","Em Avaliação em Campo":"#38BDF8"};
+const dcsStatusBg={"Conforme":"rgba(34,197,94,.12)","Não Conforme":"rgba(239,68,68,.12)","Melhoria Necessária":"rgba(245,158,11,.12)","Em Avaliação em Campo":"rgba(56,189,248,.12)"};
+const dcsStatusIcon={"Conforme":"✅","Não Conforme":"⚠","Melhoria Necessária":"🔧","Em Avaliação em Campo":"🔍"};
 const saveDcsList=async(arr)=>{setDcsList(arr);const o={};arr.forEach(d=>o[d.id]=d);await api.set(cPath("dcs"),o)};
 // Gravação pontual: grava só o registro alterado (PATCH), sem reescrever a lista toda
 const saveDcsRecord=async(rec)=>{setDcsList(p=>{const i=p.findIndex(x=>x.id===rec.id);if(i>=0){const c=[...p];c[i]=rec;return c}return[...p,rec]});await api.patch(cPath("dcs"),{[rec.id]:rec})};
@@ -972,21 +972,22 @@ const exportTipoTerminal=(byTipoTerm,terminais,tipos)=>{
 const FREQ_LABELS={diario:"Diário",cada2dias:"A cada 2 dias",semanal:"Semanal",quinzenal:"Quinzenal",mensal:"Mensal"};
 const buildFarolReportHTML=()=>{
   const list=dcsList;
-  const ncRaw=(d)=>{const q=parseInt(d.quantidade)||0;const n=(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!=="")?(parseInt(d.qtdNaoConforme)||0):(d.status==="Conforme"?0:q);return Math.min(n,q)};
+  const ncRaw=(d)=>{const q=parseInt(d.quantidade)||0;const n=(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!=="")?(parseInt(d.qtdNaoConforme)||0):((d.status==="Conforme"||d.status==="Em Avaliação em Campo")?0:q);return Math.min(n,q)};
   // Resumo por Terminal × status (unidades)
   const terms=[...new Set(list.map(d=>d.terminal||"—"))].sort();
-  const byT={};list.forEach(d=>{const t=d.terminal||"—";if(!byT[t])byT[t]={conf:0,nc:0,mel:0};const q=parseInt(d.quantidade)||0;const n=ncRaw(d);if(d.status==="Conforme")byT[t].conf+=q;else if(d.status==="Não Conforme"){byT[t].nc+=n;byT[t].conf+=(q-n)}else if(d.status==="Melhoria Necessária")byT[t].mel+=n});
+  const byT={};list.forEach(d=>{const t=d.terminal||"—";if(!byT[t])byT[t]={conf:0,nc:0,mel:0,aval:0};const q=parseInt(d.quantidade)||0;const n=ncRaw(d);if(d.status==="Conforme")byT[t].conf+=q;else if(d.status==="Não Conforme"){byT[t].nc+=n;byT[t].conf+=(q-n)}else if(d.status==="Melhoria Necessária")byT[t].mel+=n;else if(d.status==="Em Avaliação em Campo")byT[t].aval+=q});
   // Resumo por Tipo × status
   const tipos=[...new Set(list.map(d=>d.tipo||"—"))].sort();
-  const byTp={};list.forEach(d=>{const t=d.tipo||"—";if(!byTp[t])byTp[t]={conf:0,nc:0,mel:0};const q=parseInt(d.quantidade)||0;const n=ncRaw(d);if(d.status==="Conforme")byTp[t].conf+=q;else if(d.status==="Não Conforme"){byTp[t].nc+=n;byTp[t].conf+=(q-n)}else if(d.status==="Melhoria Necessária")byTp[t].mel+=n});
-  const totC=Object.values(byT).reduce((s,v)=>s+v.conf,0),totN=Object.values(byT).reduce((s,v)=>s+v.nc,0),totM=Object.values(byT).reduce((s,v)=>s+v.mel,0);
+  const byTp={};list.forEach(d=>{const t=d.tipo||"—";if(!byTp[t])byTp[t]={conf:0,nc:0,mel:0,aval:0};const q=parseInt(d.quantidade)||0;const n=ncRaw(d);if(d.status==="Conforme")byTp[t].conf+=q;else if(d.status==="Não Conforme"){byTp[t].nc+=n;byTp[t].conf+=(q-n)}else if(d.status==="Melhoria Necessária")byTp[t].mel+=n;else if(d.status==="Em Avaliação em Campo")byTp[t].aval+=q});
+  const totC=Object.values(byT).reduce((s,v)=>s+v.conf,0),totN=Object.values(byT).reduce((s,v)=>s+v.nc,0),totM=Object.values(byT).reduce((s,v)=>s+v.mel,0),totA=Object.values(byT).reduce((s,v)=>s+v.aval,0);
   const ncList=list.filter(d=>d.status==="Não Conforme");
   const melList=list.filter(d=>d.status==="Melhoria Necessária");
+  const avalList=list.filter(d=>d.status==="Em Avaliação em Campo");
   const esc=(v)=>String(v==null?"":v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-  const sumRows=(obj,keys)=>keys.map(k=>`<tr><td style="padding:6px 10px;border:1px solid #d4dae6;font-weight:600">${esc(k)}</td><td style="padding:6px 10px;border:1px solid #d4dae6;text-align:right;color:#15803d">${obj[k].conf}</td><td style="padding:6px 10px;border:1px solid #d4dae6;text-align:right;color:#b91c1c">${obj[k].nc}</td><td style="padding:6px 10px;border:1px solid #d4dae6;text-align:right;color:#b45309">${obj[k].mel}</td></tr>`).join("");
+  const sumRows=(obj,keys)=>keys.map(k=>`<tr><td style="padding:6px 10px;border:1px solid #d4dae6;font-weight:600">${esc(k)}</td><td style="padding:6px 10px;border:1px solid #d4dae6;text-align:right;color:#15803d">${obj[k].conf}</td><td style="padding:6px 10px;border:1px solid #d4dae6;text-align:right;color:#b91c1c">${obj[k].nc}</td><td style="padding:6px 10px;border:1px solid #d4dae6;text-align:right;color:#b45309">${obj[k].mel}</td><td style="padding:6px 10px;border:1px solid #d4dae6;text-align:right;color:#0369a1">${obj[k].aval}</td></tr>`).join("");
   const detRows=(arr)=>arr.length?arr.map(d=>`<tr><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.uid||"")}</td><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.terminal)}</td><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.area||"")}</td><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.subArea||"")}</td><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.local||"")}</td><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.sistema||"")}</td><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.denominacao||"")}</td><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.tipo||"")}</td><td style="padding:5px 8px;border:1px solid #d4dae6;text-align:center">${esc(d.temTagCampo||"Não")}</td><td style="padding:5px 8px;border:1px solid #d4dae6;text-align:center">${esc(d.temTagSupervisorio||"Não")}</td><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.tag||"⚠ Sem TAG")}</td><td style="padding:5px 8px;border:1px solid #d4dae6;text-align:center">${esc(d.quantidade||0)}</td><td style="padding:5px 8px;border:1px solid #d4dae6;text-align:center">${esc(d.instalado||"")}</td><td style="padding:5px 8px;border:1px solid #d4dae6;text-align:center">${esc(d.status||"")}</td><td style="padding:5px 8px;border:1px solid #d4dae6;text-align:center">${esc(ncRaw(d))}</td><td style="padding:5px 8px;border:1px solid #d4dae6;text-align:center">${esc(d.temSolicitacao||"Não")}</td><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.numSolicitacao||"")}</td><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.dataPlanejada||"")}</td><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.oQueFazer||"")}</td><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.oQueFalta||"")}</td><td style="padding:5px 8px;border:1px solid #d4dae6">${esc(d.medidaContencao||"")}</td></tr>`).join(""):`<tr><td colspan="21" style="padding:10px;text-align:center;color:#64748b;border:1px solid #d4dae6">Nenhum registro.</td></tr>`;
   const detHead=`<tr style="background:#1e3a5f;color:#fff"><th style="padding:6px 8px;border:1px solid #d4dae6">ID</th><th style="padding:6px 8px;border:1px solid #d4dae6">Terminal</th><th style="padding:6px 8px;border:1px solid #d4dae6">Área</th><th style="padding:6px 8px;border:1px solid #d4dae6">Sub Área</th><th style="padding:6px 8px;border:1px solid #d4dae6">Local de Instalação</th><th style="padding:6px 8px;border:1px solid #d4dae6">Sistema</th><th style="padding:6px 8px;border:1px solid #d4dae6">Denominação do Objeto Técnico</th><th style="padding:6px 8px;border:1px solid #d4dae6">Tipo DCS</th><th style="padding:6px 8px;border:1px solid #d4dae6">TAG campo?</th><th style="padding:6px 8px;border:1px solid #d4dae6">TAG superv.?</th><th style="padding:6px 8px;border:1px solid #d4dae6">Cód. TAG</th><th style="padding:6px 8px;border:1px solid #d4dae6">Qtd Inst./Melhoria</th><th style="padding:6px 8px;border:1px solid #d4dae6">Instalado?</th><th style="padding:6px 8px;border:1px solid #d4dae6">Status</th><th style="padding:6px 8px;border:1px solid #d4dae6">Qtd Não Conf./Pend.</th><th style="padding:6px 8px;border:1px solid #d4dae6">Solic.?</th><th style="padding:6px 8px;border:1px solid #d4dae6">Nº Solic.</th><th style="padding:6px 8px;border:1px solid #d4dae6">Data Planejada</th><th style="padding:6px 8px;border:1px solid #d4dae6">O que precisa fazer?</th><th style="padding:6px 8px;border:1px solid #d4dae6">O que falta para executar?</th><th style="padding:6px 8px;border:1px solid #d4dae6">Medida de Contenção</th></tr>`;
-  const total=totC+totN+totM;const pct=total?Math.round(totC/total*100):0;
+  const total=totC+totN+totM+totA;const pct=total?Math.round(totC/total*100):0;
   return `<div style="font-family:Arial,Helvetica,sans-serif;max-width:1400px;margin:0 auto;color:#0f172a">
 <div style="background:#0B1929;color:#fff;padding:18px 22px;border-radius:10px 10px 0 0">
 <h2 style="margin:0;font-size:20px">🚦 Relatório Farol DCS — Dispositivos Críticos de Segurança</h2>
@@ -994,18 +995,21 @@ const buildFarolReportHTML=()=>{
 </div>
 <div style="border:1px solid #d4dae6;border-top:none;padding:18px 22px;border-radius:0 0 10px 10px">
 <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
-<div style="flex:1;min-width:120px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#15803d">${totC}</div><div style="font-size:11px;color:#475569">Conformes</div></div>
-<div style="flex:1;min-width:120px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#b91c1c">${totN}</div><div style="font-size:11px;color:#475569">Não Conformes</div></div>
-<div style="flex:1;min-width:120px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#b45309">${totM}</div><div style="font-size:11px;color:#475569">Melhoria</div></div>
+<div style="flex:1;min-width:110px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#15803d">${totC}</div><div style="font-size:11px;color:#475569">Conformes</div></div>
+<div style="flex:1;min-width:110px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#b91c1c">${totN}</div><div style="font-size:11px;color:#475569">Não Conformes</div></div>
+<div style="flex:1;min-width:110px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#b45309">${totM}</div><div style="font-size:11px;color:#475569">Melhoria</div></div>
+<div style="flex:1;min-width:110px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#0369a1">${totA}</div><div style="font-size:11px;color:#475569">Em Avaliação em Campo</div></div>
 </div>
 <h3 style="font-size:15px;margin:18px 0 8px">Resumo por Terminal (unidades)</h3>
-<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="background:#f1f5f9"><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:left">Terminal</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Conforme</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Não Conforme</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Melhoria</th></tr>${sumRows(byT,terms)}</table>
+<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="background:#f1f5f9"><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:left">Terminal</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Conforme</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Não Conforme</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Melhoria</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Em Avaliação</th></tr>${sumRows(byT,terms)}</table>
 <h3 style="font-size:15px;margin:18px 0 8px">Resumo por Tipo de DCS (unidades)</h3>
-<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="background:#f1f5f9"><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:left">Tipo de DCS</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Conforme</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Não Conforme</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Melhoria</th></tr>${sumRows(byTp,tipos)}</table>
+<table style="border-collapse:collapse;width:100%;font-size:13px"><tr style="background:#f1f5f9"><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:left">Tipo de DCS</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Conforme</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Não Conforme</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Melhoria</th><th style="padding:6px 10px;border:1px solid #d4dae6;text-align:right">Em Avaliação</th></tr>${sumRows(byTp,tipos)}</table>
 <h3 style="font-size:15px;margin:22px 0 8px;color:#b91c1c">⚠ Detalhamento — DCS Não Conformes (${ncList.length})</h3>
 <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:11px;white-space:nowrap">${detHead}${detRows(ncList)}</table></div>
 <h3 style="font-size:15px;margin:22px 0 8px;color:#b45309">🔧 Detalhamento — DCS para Melhoria (${melList.length})</h3>
 <div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:11px;white-space:nowrap">${detHead}${detRows(melList)}</table></div>
+<h3 style="font-size:15px;margin:22px 0 8px;color:#0369a1">🔍 Detalhamento — DCS Em Avaliação em Campo (${avalList.length})</h3>
+<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:11px;white-space:nowrap">${detHead}${detRows(avalList)}</table></div>
 <p style="font-size:11px;color:#94a3b8;margin-top:18px">Relatório gerado automaticamente pelo PM Manager · Frequência configurada: ${FREQ_LABELS[dcsMailCfg.freq]||dcsMailCfg.freq}</p>
 </div></div>`;
 };
@@ -1034,16 +1038,16 @@ const downloadFarolReportFile=()=>{
 const sendFarolNow=()=>{
   const emails=(dcsMailCfg.emails||[]).filter(Boolean);
   if(!emails.length){notify("Cadastre ao menos um e-mail destinatário.","error");return}
-  const ncRaw=(d)=>{const q=parseInt(d.quantidade)||0;const n=(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!=="")?(parseInt(d.qtdNaoConforme)||0):(d.status==="Conforme"?0:q);return Math.min(n,q)};
+  const ncRaw=(d)=>{const q=parseInt(d.quantidade)||0;const n=(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!=="")?(parseInt(d.qtdNaoConforme)||0):((d.status==="Conforme"||d.status==="Em Avaliação em Campo")?0:q);return Math.min(n,q)};
   // Resumo gerencial para o corpo do e-mail
   let totC=0,totN=0,totM=0;const byT={},byTp={};
-  dcsList.forEach(d=>{const t=d.terminal||"—",tp=d.tipo||"—";const q=parseInt(d.quantidade)||0;const n=ncRaw(d);if(!byT[t])byT[t]={c:0,n:0,m:0};if(!byTp[tp])byTp[tp]={c:0,n:0,m:0};if(d.status==="Conforme"){totC+=q;byT[t].c+=q;byTp[tp].c+=q}else if(d.status==="Não Conforme"){totN+=n;totC+=(q-n);byT[t].n+=n;byT[t].c+=(q-n);byTp[tp].n+=n;byTp[tp].c+=(q-n)}else if(d.status==="Melhoria Necessária"){totM+=n;byT[t].m+=n;byTp[tp].m+=n}});
-  const tot=totC+totN+totM;const pct=tot?Math.round(totC/tot*100):0;
-  const ncCount=dcsList.filter(d=>d.status==="Não Conforme").length,melCount=dcsList.filter(d=>d.status==="Melhoria Necessária").length;
+  dcsList.forEach(d=>{const t=d.terminal||"—",tp=d.tipo||"—";const q=parseInt(d.quantidade)||0;const n=ncRaw(d);if(!byT[t])byT[t]={c:0,n:0,m:0,a:0};if(!byTp[tp])byTp[tp]={c:0,n:0,m:0,a:0};if(d.status==="Conforme"){totC+=q;byT[t].c+=q;byTp[tp].c+=q}else if(d.status==="Não Conforme"){totN+=n;totC+=(q-n);byT[t].n+=n;byT[t].c+=(q-n);byTp[tp].n+=n;byTp[tp].c+=(q-n)}else if(d.status==="Melhoria Necessária"){totM+=n;byT[t].m+=n;byTp[tp].m+=n}else if(d.status==="Em Avaliação em Campo"){totA+=q;byT[t].a+=q;byTp[tp].a+=q}});
+  const tot=totC+totN+totM+totA;const pct=tot?Math.round(totC/tot*100):0;
+  const ncCount=dcsList.filter(d=>d.status==="Não Conforme").length,melCount=dcsList.filter(d=>d.status==="Melhoria Necessária").length,avalCount=dcsList.filter(d=>d.status==="Em Avaliação em Campo").length;
   const ncSemSolic=dcsList.filter(d=>d.status==="Não Conforme"&&d.temSolicitacao!=="Sim").length;
   const pad=(s,n)=>String(s).padEnd(n).slice(0,n);
-  const termTable=Object.entries(byT).sort().map(([t,v])=>`  ${pad(t,16)} C:${pad(v.c,5)} NC:${pad(v.n,5)} Melh:${v.m}`).join("\n");
-  const tipoTable=Object.entries(byTp).sort().map(([t,v])=>`  ${pad(t,16)} C:${pad(v.c,5)} NC:${pad(v.n,5)} Melh:${v.m}`).join("\n");
+  const termTable=Object.entries(byT).sort().map(([t,v])=>`  ${pad(t,16)} C:${pad(v.c,5)} NC:${pad(v.n,5)} Melh:${pad(v.m,5)} Aval:${v.a}`).join("\n");
+  const tipoTable=Object.entries(byTp).sort().map(([t,v])=>`  ${pad(t,16)} C:${pad(v.c,5)} NC:${pad(v.n,5)} Melh:${pad(v.m,5)} Aval:${v.a}`).join("\n");
   const assunto=`Relatório Farol DCS — ${currentCompany?.name||""} — ${new Date().toLocaleDateString("pt-BR")} — Conformidade ${pct}%`;
   const corpo=
 `RELATÓRIO FAROL DCS — DISPOSITIVOS CRÍTICOS DE SEGURANÇA
@@ -1055,6 +1059,7 @@ Conformidade geral: ${pct}%
 Conformes: ${totC} unid.
 Não Conformes: ${totN} unid. (${ncCount} registro(s))
 Melhoria: ${totM} unid. (${melCount} registro(s))
+Em Avaliação em Campo: ${totA} unid. (${avalCount} registro(s))
 NC SEM solicitação de manutenção: ${ncSemSolic} registro(s)  <<< atenção
 
 ==== RESUMO POR TERMINAL (unidades) ====
@@ -1065,8 +1070,8 @@ ${tipoTable}
 
 ------------------------------------------------------------
 O relatório completo (com as tabelas detalhadas de TODOS os
-Não Conformes e de Melhoria, em paisagem) foi BAIXADO no seu
-aparelho como arquivo .html — anexe-o a este e-mail.
+Não Conformes, de Melhoria e Em Avaliação em Campo, em paisagem)
+foi BAIXADO no seu aparelho como arquivo .html — anexe-o a este e-mail.
 (Abra o arquivo e use Imprimir > Salvar como PDF se preferir anexar em PDF.)
 
 — PM Manager`;
@@ -1085,7 +1090,7 @@ const saveMailCfg=async()=>{
   setDcsMailCfg(clean);await api.set(cPath("dcsmailcfg"),clean);setShowMailModal(false);notify(`✅ Configuração salva — ${emails.length} destinatário(s).`,"success");
 };
 const handleDcsModelDownload=()=>{
-  const data=dcsList.length?dcsList.map(d=>({"ID":d.uid||"","Terminal":d.terminal,"Área":d.area||"","Sub Área":d.subArea||"","Local de Instalação":d.local,"Sistema":d.sistema||"","Denominação do Objeto Técnico":d.denominacao||"","Tipo DCS":d.tipo,"Tem TAG em campo?":d.temTagCampo||"Não","Tem TAG no Supervisório?":d.temTagSupervisorio||"Não","Cód. TAG":d.tag||"","Quantidade Instalada ou para Melhoria":d.quantidade,"Instalado?":d.instalado,"Status Atual":d.status,"Qtd Não Conforme ou Pendente":d.status==="Conforme"?0:(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!==""?d.qtdNaoConforme:(d.status==="Melhoria Necessária"?d.quantidade:0)),"Existe Solicitação de Manutenção?":d.temSolicitacao,"Nº Solicitação de Manutenção":d.numSolicitacao||"","Data Planejada":d.dataPlanejada||"","O que precisa fazer?":d.oQueFazer||"","O que falta para executar?":d.oQueFalta||"","Medida de Contenção":d.medidaContencao||""})):[Object.fromEntries(DCS_COLUMNS.map(c=>[c,""]))];
+  const data=dcsList.length?dcsList.map(d=>({"ID":d.uid||"","Terminal":d.terminal,"Área":d.area||"","Sub Área":d.subArea||"","Local de Instalação":d.local,"Sistema":d.sistema||"","Denominação do Objeto Técnico":d.denominacao||"","Tipo DCS":d.tipo,"Tem TAG em campo?":d.temTagCampo||"Não","Tem TAG no Supervisório?":d.temTagSupervisorio||"Não","Cód. TAG":d.tag||"","Quantidade Instalada ou para Melhoria":d.quantidade,"Instalado?":d.instalado,"Status Atual":d.status,"Qtd Não Conforme ou Pendente":(d.status==="Conforme"||d.status==="Em Avaliação em Campo")?0:(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!==""?d.qtdNaoConforme:(d.status==="Melhoria Necessária"?d.quantidade:0)),"Existe Solicitação de Manutenção?":d.temSolicitacao,"Nº Solicitação de Manutenção":d.numSolicitacao||"","Data Planejada":d.dataPlanejada||"","O que precisa fazer?":d.oQueFazer||"","O que falta para executar?":d.oQueFalta||"","Medida de Contenção":d.medidaContencao||""})):[Object.fromEntries(DCS_COLUMNS.map(c=>[c,""]))];
   const wb=XLSX.utils.book_new();const ws=XLSX.utils.json_to_sheet(data,{header:DCS_COLUMNS});ws["!cols"]=DCS_COLUMNS.map(()=>({wch:22}));XLSX.utils.book_append_sheet(wb,ws,"DCS");XLSX.writeFile(wb,`Modelo_Farol_DCS_${new Date().toISOString().slice(0,10)}.xlsx`);notify("📥 Modelo baixado com dados atuais!","success");
 };
 const handleDcsBulkUpload=(e)=>{
@@ -1138,7 +1143,7 @@ const confirmDcsImport=async()=>{
 };
 const handleDcsExport=()=>{
   if(!dcsList.length){notify("Nenhum DCS.","error");return}
-  const data=dcsList.map((d)=>({"ID":d.uid||"—","Terminal":d.terminal,"Área":d.area||"—","Sub Área":d.subArea||"—","Local de Instalação":d.local,"Sistema":d.sistema||"—","Denominação do Objeto Técnico":d.denominacao||"—","Tipo DCS":d.tipo,"Tem TAG em campo?":d.temTagCampo||"Não","Tem TAG no Supervisório?":d.temTagSupervisorio||"Não","Cód. TAG":dcsHasTag(d)?(d.tag||""):"Sem TAG","Quantidade Instalada ou para Melhoria":d.quantidade,"Instalado?":d.instalado,"Status Atual":d.status,"Qtd Não Conforme ou Pendente":d.status==="Conforme"?0:(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!==""?d.qtdNaoConforme:(d.status==="Melhoria Necessária"?d.quantidade:0)),"Existe Solicitação de Manutenção?":d.temSolicitacao,"Nº Solicitação de Manutenção":d.numSolicitacao||"—","Data Planejada":d.dataPlanejada||"—","O que precisa fazer?":d.oQueFazer||"—","O que falta para executar?":d.oQueFalta||"—","Medida de Contenção":d.medidaContencao||"—","Cadastrado por":d.createdBy||"—","Data":d.createdAt||"—","Última Alteração":d.updatedAt?`${d.updatedBy} - ${d.updatedAt}`:"—"}));
+  const data=dcsList.map((d)=>({"ID":d.uid||"—","Terminal":d.terminal,"Área":d.area||"—","Sub Área":d.subArea||"—","Local de Instalação":d.local,"Sistema":d.sistema||"—","Denominação do Objeto Técnico":d.denominacao||"—","Tipo DCS":d.tipo,"Tem TAG em campo?":d.temTagCampo||"Não","Tem TAG no Supervisório?":d.temTagSupervisorio||"Não","Cód. TAG":dcsHasTag(d)?(d.tag||""):"Sem TAG","Quantidade Instalada ou para Melhoria":d.quantidade,"Instalado?":d.instalado,"Status Atual":d.status,"Qtd Não Conforme ou Pendente":(d.status==="Conforme"||d.status==="Em Avaliação em Campo")?0:(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!==""?d.qtdNaoConforme:(d.status==="Melhoria Necessária"?d.quantidade:0)),"Existe Solicitação de Manutenção?":d.temSolicitacao,"Nº Solicitação de Manutenção":d.numSolicitacao||"—","Data Planejada":d.dataPlanejada||"—","O que precisa fazer?":d.oQueFazer||"—","O que falta para executar?":d.oQueFalta||"—","Medida de Contenção":d.medidaContencao||"—","Cadastrado por":d.createdBy||"—","Data":d.createdAt||"—","Última Alteração":d.updatedAt?`${d.updatedBy} - ${d.updatedAt}`:"—"}));
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data),"DCS");XLSX.writeFile(wb,`DCS_${new Date().toISOString().slice(0,10)}.xlsx`);notify("📊 Exportado!","success");
 };
 
@@ -1637,7 +1642,7 @@ return(<>
 {!hiddenCols.quantidade&&<td style={{padding:"6px 8px",textAlign:"center",background:bg}}>{d.quantidade}</td>}
 {!hiddenCols.instalado&&<td style={{padding:"6px 8px",textAlign:"center",background:bg}}>{canEdit("dcs")?<select value={d.instalado} onChange={e=>updateDcsField(d.id,"instalado",e.target.value)} style={{background:d.instalado==="Sim"?"rgba(34,197,94,.15)":"rgba(239,68,68,.15)",color:d.instalado==="Sim"?"#22C55E":"#EF4444",border:"1px solid transparent",borderRadius:5,padding:"4px 6px",fontSize:11,fontWeight:700,cursor:"pointer",outline:"none"}}><option value="Sim" style={{background:"#0F172A"}}>✅ Sim</option><option value="Não" style={{background:"#0F172A"}}>⚠ Não</option></select>:<span style={{padding:"2px 8px",borderRadius:5,fontSize:11,fontWeight:700,background:d.instalado==="Sim"?"rgba(34,197,94,.15)":"rgba(239,68,68,.15)",color:d.instalado==="Sim"?"#22C55E":"#EF4444"}}>{d.instalado==="Sim"?"✅ Sim":"⚠ Não"}</span>}</td>}
 {!hiddenCols.status&&<td style={{padding:"6px 8px",textAlign:"center",background:bg}}>{canEdit("dcs")?<select value={d.status} onChange={e=>updateDcsField(d.id,"status",e.target.value)} style={{background:dcsStatusBg[d.status],color:dcsStatusColor[d.status],border:"1px solid transparent",borderRadius:5,padding:"4px 6px",fontSize:11,fontWeight:700,cursor:"pointer",outline:"none",minWidth:130}}>{DCS_STATUS.map(s=><option key={s} value={s} style={{background:"#0F172A",color:"#F1F5F9"}}>{dcsStatusIcon[s]} {s}</option>)}</select>:<span style={{padding:"2px 8px",borderRadius:5,fontSize:11,fontWeight:700,background:dcsStatusBg[d.status],color:dcsStatusColor[d.status]}}>{dcsStatusIcon[d.status]} {d.status}</span>}</td>}
-{!hiddenCols.qtdNaoConforme&&<td style={{padding:"6px 8px",textAlign:"center",background:bg}}>{d.status==="Conforme"?<span style={{color:"#475569"}}>—</span>:canEdit("dcs")?<input type="number" min="0" value={d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!==""?d.qtdNaoConforme:(d.status==="Melhoria Necessária"?d.quantidade:"")} onChange={e=>updateDcsField(d.id,"qtdNaoConforme",e.target.value)} style={{background:"rgba(245,158,11,.1)",color:"#F59E0B",border:"1px solid rgba(245,158,11,.3)",borderRadius:5,padding:"4px 6px",fontSize:11,fontWeight:700,outline:"none",width:60,textAlign:"center"}}/>:<span style={{fontWeight:700,color:"#F59E0B"}}>{d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!==""?d.qtdNaoConforme:(d.status==="Melhoria Necessária"?d.quantidade:"—")}</span>}</td>}
+{!hiddenCols.qtdNaoConforme&&<td style={{padding:"6px 8px",textAlign:"center",background:bg}}>{(d.status==="Conforme"||d.status==="Em Avaliação em Campo")?<span style={{color:"#475569"}}>—</span>:canEdit("dcs")?<input type="number" min="0" value={d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!==""?d.qtdNaoConforme:(d.status==="Melhoria Necessária"?d.quantidade:"")} onChange={e=>updateDcsField(d.id,"qtdNaoConforme",e.target.value)} style={{background:"rgba(245,158,11,.1)",color:"#F59E0B",border:"1px solid rgba(245,158,11,.3)",borderRadius:5,padding:"4px 6px",fontSize:11,fontWeight:700,outline:"none",width:60,textAlign:"center"}}/>:<span style={{fontWeight:700,color:"#F59E0B"}}>{d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!==""?d.qtdNaoConforme:(d.status==="Melhoria Necessária"?d.quantidade:"—")}</span>}</td>}
 {!hiddenCols.temSolicitacao&&<td style={{padding:"6px 8px",textAlign:"center",background:bg}}>{canEdit("dcs")?<select value={d.temSolicitacao} onChange={e=>updateDcsField(d.id,"temSolicitacao",e.target.value)} style={{background:"rgba(37,99,235,.13)",color:"#F1F5F9",border:"1px solid rgba(96,165,250,.45)",borderRadius:5,padding:"4px 6px",fontSize:11,cursor:"pointer",outline:"none"}}><option value="Sim" style={{background:"#0F172A"}}>Sim</option><option value="Não" style={{background:"#0F172A"}}>Não</option></select>:d.temSolicitacao}</td>}
 {!hiddenCols.numSolicitacao&&<td style={{padding:"6px 8px",color:"#CBD5E1",background:bg}}>{canEdit("dcs")?<input value={d.numSolicitacao||""} onChange={e=>updateDcsField(d.id,"numSolicitacao",e.target.value)} disabled={d.temSolicitacao!=="Sim"} placeholder={d.temSolicitacao==="Sim"?"Nº":"—"} style={{background:"rgba(37,99,235,.13)",color:"#F1F5F9",border:"1px solid rgba(96,165,250,.45)",borderRadius:5,padding:"4px 6px",fontSize:11,outline:"none",width:90,opacity:d.temSolicitacao!=="Sim"?.4:1}}/>:(d.numSolicitacao||"—")}</td>}
 {!hiddenCols.dataPlanejada&&<td style={{padding:"6px 8px",color:"#CBD5E1",background:bg}}>{canEdit("dcs")?<input type="date" value={d.dataPlanejada||""} onChange={e=>updateDcsField(d.id,"dataPlanejada",e.target.value)} disabled={d.temSolicitacao!=="Sim"} style={{background:"rgba(37,99,235,.13)",color:"#F1F5F9",border:"1px solid rgba(96,165,250,.45)",borderRadius:5,padding:"4px 6px",fontSize:11,outline:"none",opacity:d.temSolicitacao!=="Sim"?.4:1}}/>:(d.dataPlanejada||"—")}</td>}
@@ -1690,6 +1695,7 @@ return(<>
 <option value="Conforme">✅ Conforme — Sensor existente, funcionando corretamente</option>
 <option value="Não Conforme">⚠ Não Conforme — Sensor com falha, desvio ou fora de padrão</option>
 <option value="Melhoria Necessária">🔧 Melhoria Necessária — Sensor não existe, mas é necessário</option>
+<option value="Em Avaliação em Campo">🔍 Em Avaliação em Campo — Em verificação técnica no local</option>
 </select></div></div>
 <div><label className="label" style={{marginTop:0}}>Existe Solicitação de Manutenção? *</label><div className="input-wrap"><span className="input-icon">📝</span><select className="input-field" style={{paddingLeft:40}} value={dcsForm.temSolicitacao} onChange={e=>setDcsForm(p=>({...p,temSolicitacao:e.target.value}))}>
 <option value="">— Selecione —</option>
@@ -1772,7 +1778,7 @@ return(<>
 <div style={{fontSize:9,color:"#64748B",marginTop:2}}>{farolData.length} dispositivo(s)</div>
 </div>
 {(()=>{
-const farolCounts={"Conforme":0,"Não Conforme":0,"Melhoria Necessária":0};
+const farolCounts={"Conforme":0,"Não Conforme":0,"Melhoria Necessária":0,"Em Avaliação em Campo":0};
 farolData.forEach(d=>{
   const qty=parseInt(d.quantidade)||0;
   const ncRaw=(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!=="")?(parseInt(d.qtdNaoConforme)||0):(d.status==="Conforme"?0:qty);
@@ -1780,6 +1786,7 @@ farolData.forEach(d=>{
   if(d.status==="Conforme"){farolCounts["Conforme"]+=qty;}
   else if(d.status==="Não Conforme"){farolCounts["Não Conforme"]+=nc;farolCounts["Conforme"]+=(qty-nc);}
   else if(d.status==="Melhoria Necessária"){farolCounts["Melhoria Necessária"]+=nc;}
+  else if(d.status==="Em Avaliação em Campo"){farolCounts["Em Avaliação em Campo"]+=qty;}
 });
 return DCS_STATUS.map(s=>{const count=farolCounts[s];const active=farolFilter===s;return(
 <div key={s} onClick={()=>setFarolFilter(active?"":s)} style={{background:active?dcsStatusBg[s]:"rgba(15,23,42,.4)",borderRadius:10,border:`1px solid ${active?dcsStatusColor[s]:"#1E3A5F"}`,padding:14,cursor:"pointer",transition:"all .2s",position:"relative"}}>
@@ -1794,15 +1801,15 @@ return DCS_STATUS.map(s=>{const count=farolCounts[s];const active=farolFilter===
 
 {/* Painel Gerencial */}
 {(()=>{
-const fc={"Conforme":0,"Não Conforme":0,"Melhoria Necessária":0};let totalUnid=0;
-farolData.forEach(d=>{const qty=parseInt(d.quantidade)||0;totalUnid+=qty;const ncRaw=(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!=="")?(parseInt(d.qtdNaoConforme)||0):(d.status==="Conforme"?0:qty);const nc=Math.min(ncRaw,qty);if(d.status==="Conforme")fc["Conforme"]+=qty;else if(d.status==="Não Conforme"){fc["Não Conforme"]+=nc;fc["Conforme"]+=(qty-nc)}else if(d.status==="Melhoria Necessária")fc["Melhoria Necessária"]+=nc});
+const fc={"Conforme":0,"Não Conforme":0,"Melhoria Necessária":0,"Em Avaliação em Campo":0};let totalUnid=0;
+farolData.forEach(d=>{const qty=parseInt(d.quantidade)||0;totalUnid+=qty;const ncRaw=(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!=="")?(parseInt(d.qtdNaoConforme)||0):(d.status==="Conforme"?0:qty);const nc=Math.min(ncRaw,qty);if(d.status==="Conforme")fc["Conforme"]+=qty;else if(d.status==="Não Conforme"){fc["Não Conforme"]+=nc;fc["Conforme"]+=(qty-nc)}else if(d.status==="Melhoria Necessária")fc["Melhoria Necessária"]+=nc;else if(d.status==="Em Avaliação em Campo")fc["Em Avaliação em Campo"]+=qty});
 const pctConf=totalUnid>0?(fc["Conforme"]/totalUnid*100):0;
 const instalados=farolData.filter(d=>d.instalado==="Sim").length;const pctInst=farolData.length?(instalados/farolData.length*100):0;
 const comSolic=farolData.filter(d=>d.temSolicitacao==="Sim").length;
 // Não Conforme SEM solicitação de manutenção (unidades) — risco a tratar
 let ncSemSolic=0;farolData.forEach(d=>{if(d.status==="Não Conforme"&&d.temSolicitacao!=="Sim"){const qty=parseInt(d.quantidade)||0;const ncRaw=(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!=="")?(parseInt(d.qtdNaoConforme)||0):qty;ncSemSolic+=Math.min(ncRaw,qty)}});
 // por terminal
-const byTerm={};farolData.forEach(d=>{const t=d.terminal||"—";if(!byTerm[t])byTerm[t]={conf:0,nc:0,mel:0,tot:0};const qty=parseInt(d.quantidade)||0;byTerm[t].tot+=qty;const ncRaw=(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!=="")?(parseInt(d.qtdNaoConforme)||0):(d.status==="Conforme"?0:qty);const nc=Math.min(ncRaw,qty);if(d.status==="Conforme")byTerm[t].conf+=qty;else if(d.status==="Não Conforme"){byTerm[t].nc+=nc;byTerm[t].conf+=(qty-nc)}else if(d.status==="Melhoria Necessária")byTerm[t].mel+=nc});
+const byTerm={};farolData.forEach(d=>{const t=d.terminal||"—";if(!byTerm[t])byTerm[t]={conf:0,nc:0,mel:0,aval:0,tot:0};const qty=parseInt(d.quantidade)||0;byTerm[t].tot+=qty;const ncRaw=(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!=="")?(parseInt(d.qtdNaoConforme)||0):(d.status==="Conforme"?0:qty);const nc=Math.min(ncRaw,qty);if(d.status==="Conforme")byTerm[t].conf+=qty;else if(d.status==="Não Conforme"){byTerm[t].nc+=nc;byTerm[t].conf+=(qty-nc)}else if(d.status==="Melhoria Necessária")byTerm[t].mel+=nc;else if(d.status==="Em Avaliação em Campo")byTerm[t].aval+=qty});
 const gaugeColor=pctConf>=80?"#22C55E":pctConf>=50?"#F59E0B":"#EF4444";
 return(<div style={{background:"linear-gradient(135deg,rgba(15,23,42,.6),rgba(15,23,42,.3))",borderRadius:14,border:"1px solid #1E3A5F",padding:20,marginBottom:20}}>
 <div style={{color:"#CBD5E1",fontSize:15,fontWeight:700,marginBottom:16,display:"flex",alignItems:"center",justifyContent:"space-between",gap:8}}><span>📊 Painel Gerencial</span><button style={{background:"rgba(168,85,247,.1)",border:"1px solid rgba(168,85,247,.3)",color:"#A855F7",borderRadius:6,padding:"4px 10px",fontSize:11,fontWeight:600,cursor:"pointer"}} onClick={()=>exportSvgAsImage("gauge-conf","Conformidade")}>📷 Medidor</button></div>
@@ -1820,12 +1827,13 @@ return(<div style={{background:"linear-gradient(135deg,rgba(15,23,42,.6),rgba(15
 </div>
 </div>
 </div>
-{/* KPIs - NC e Melhoria separados */}
+{/* KPIs - NC, Melhoria, Avaliação separados */}
 <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
 <div style={{background:"rgba(34,197,94,.08)",borderRadius:10,padding:12,textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:"#22C55E"}}>{fc["Conforme"]}</div><div style={{fontSize:10,color:"#94A3B8"}}>Unid. Conformes</div></div>
 <div style={{background:"rgba(239,68,68,.08)",borderRadius:10,padding:12,textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:"#EF4444"}}>{fc["Não Conforme"]}</div><div style={{fontSize:10,color:"#94A3B8"}}>⚠ Não Conformes</div></div>
 <div style={{background:"rgba(245,158,11,.08)",borderRadius:10,padding:12,textAlign:"center"}}><div style={{fontSize:22,fontWeight:800,color:"#F59E0B"}}>{fc["Melhoria Necessária"]}</div><div style={{fontSize:10,color:"#94A3B8"}}>🔧 Melhoria Necessária</div></div>
-<div style={{background:"rgba(220,38,38,.12)",borderRadius:10,padding:12,textAlign:"center",border:"1px solid rgba(220,38,38,.3)"}}><div style={{fontSize:22,fontWeight:800,color:"#EF4444"}}>{ncSemSolic}</div><div style={{fontSize:10,color:"#FCA5A5"}}>🚨 NC SEM Solicitação</div></div>
+<div style={{background:"rgba(56,189,248,.10)",borderRadius:10,padding:12,textAlign:"center",border:"1px solid rgba(56,189,248,.3)"}}><div style={{fontSize:22,fontWeight:800,color:"#38BDF8"}}>{fc["Em Avaliação em Campo"]}</div><div style={{fontSize:10,color:"#94A3B8"}}>🔍 Em Avaliação em Campo</div></div>
+<div style={{background:"rgba(220,38,38,.12)",borderRadius:10,padding:12,textAlign:"center",border:"1px solid rgba(220,38,38,.3)",gridColumn:"span 2"}}><div style={{fontSize:22,fontWeight:800,color:"#EF4444"}}>{ncSemSolic}</div><div style={{fontSize:10,color:"#FCA5A5"}}>🚨 NC SEM Solicitação de Manutenção</div></div>
 </div>
 </div>
 {/* indicadores secundários */}
@@ -1844,12 +1852,14 @@ return(<div style={{background:"linear-gradient(135deg,rgba(15,23,42,.6),rgba(15
 <div style={{width:`${v.conf/w*100}%`,background:"#22C55E"}} title={`Conforme: ${v.conf}`}/>
 <div style={{width:`${v.nc/w*100}%`,background:"#EF4444"}} title={`Não Conforme: ${v.nc}`}/>
 <div style={{width:`${v.mel/w*100}%`,background:"#F59E0B"}} title={`Melhoria: ${v.mel}`}/>
+<div style={{width:`${v.aval/w*100}%`,background:"#38BDF8"}} title={`Em Avaliação: ${v.aval}`}/>
 </div>
 </div>)})}
-<div style={{display:"flex",gap:14,marginTop:8,fontSize:10}}>
+<div style={{display:"flex",gap:14,marginTop:8,fontSize:10,flexWrap:"wrap"}}>
 <span style={{display:"flex",alignItems:"center",gap:4,color:"#22C55E"}}><span style={{width:10,height:10,borderRadius:2,background:"#22C55E"}}/>Conforme</span>
 <span style={{display:"flex",alignItems:"center",gap:4,color:"#EF4444"}}><span style={{width:10,height:10,borderRadius:2,background:"#EF4444"}}/>Não Conforme</span>
 <span style={{display:"flex",alignItems:"center",gap:4,color:"#F59E0B"}}><span style={{width:10,height:10,borderRadius:2,background:"#F59E0B"}}/>Melhoria</span>
+<span style={{display:"flex",alignItems:"center",gap:4,color:"#38BDF8"}}><span style={{width:10,height:10,borderRadius:2,background:"#38BDF8"}}/>Em Avaliação</span>
 </div>
 </div>
 </div>)})()}
@@ -1973,7 +1983,7 @@ return(
 {dcsStatusIcon[d.status]} {d.status}
 </span>
 </td>}
-{!farolHiddenCols.qtdNaoConforme&&<td style={{padding:"8px",textAlign:"center",fontWeight:700,color:d.status==="Conforme"?"#475569":"#F59E0B",background:bg}}>{d.status==="Conforme"?"—":(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!==""?d.qtdNaoConforme:(d.status==="Melhoria Necessária"?d.quantidade:"—"))}</td>}
+{!farolHiddenCols.qtdNaoConforme&&<td style={{padding:"8px",textAlign:"center",fontWeight:700,color:(d.status==="Conforme"||d.status==="Em Avaliação em Campo")?"#475569":"#F59E0B",background:bg}}>{(d.status==="Conforme"||d.status==="Em Avaliação em Campo")?"—":(d.qtdNaoConforme!==undefined&&d.qtdNaoConforme!==""?d.qtdNaoConforme:(d.status==="Melhoria Necessária"?d.quantidade:"—"))}</td>}
 {!farolHiddenCols.temSolicitacao&&<td style={{padding:"8px",textAlign:"center",color:"#CBD5E1",background:bg}}>{d.temSolicitacao}</td>}
 {!farolHiddenCols.numSolicitacao&&<td style={{padding:"8px",color:"#CBD5E1",background:bg}}>{d.numSolicitacao||"—"}</td>}
 {!farolHiddenCols.dataPlanejada&&<td style={{padding:"8px",color:"#CBD5E1",background:bg}}>{d.dataPlanejada||"—"}</td>}
