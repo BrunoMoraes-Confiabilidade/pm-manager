@@ -39,6 +39,8 @@ input,textarea,button,select{font-family:inherit}
 /* menos poluição: sem animações de flutuar/pulsar e sem brilhos */
 .app.simple-theme .dash-card .icon{animation:none!important}
 .app.simple-theme .dash-card:hover{transform:none!important}
+/* no tema simples, deixa a foto de fundo mais perceptível (overlay mais leve) */
+.app.simple-theme .bg-photo-overlay{background:rgba(8,14,28,.55)!important}
 /* Campos editáveis bem visíveis no tema escuro */
 .app:not(.light-theme) .dcs-edit,.app:not(.light-theme) select.dcs-edit,.app:not(.light-theme) input.dcs-edit,.app:not(.light-theme) textarea.dcs-edit{background:rgba(37,99,235,.12)!important;border:1px solid rgba(96,165,250,.45)!important;box-shadow:inset 0 0 0 1px rgba(96,165,250,.08)}
 .app:not(.light-theme) .dcs-edit:focus{border-color:#60A5FA!important;background:rgba(37,99,235,.2)!important}
@@ -1177,7 +1179,7 @@ if(phase==="loading")return<div className="app" style={{display:"flex",alignItem
 
 // ═══ DASHBOARD ═══
 if(phase==="dashboard"&&loggedUser&&currentCompany)return(
-<div className={"app"+(theme==="light"?" light-theme":"")+(theme==="simple"?" simple-theme":"")}>{bgImage?<><div className="bg-photo" style={{position:"fixed",inset:0,zIndex:0,backgroundImage:`url(${bgImage})`,backgroundSize:"cover",backgroundPosition:"center",backgroundAttachment:"fixed"}}/><div style={{position:"fixed",inset:0,zIndex:0,background:"rgba(8,14,28,.82)"}}/></>:<><div className="bg-texture"/><div className="bg-grad"/></>}
+<div className={"app"+(theme==="light"?" light-theme":"")+(theme==="simple"?" simple-theme":"")}>{bgImage?<><div className="bg-photo" style={{position:"fixed",inset:0,zIndex:0,backgroundImage:`url(${bgImage})`,backgroundSize:"cover",backgroundPosition:"center",backgroundAttachment:"fixed"}}/><div className="bg-photo-overlay" style={{position:"fixed",inset:0,zIndex:0,background:"rgba(8,14,28,.82)"}}/></>:<><div className="bg-texture"/><div className="bg-grad"/></>}
 {toast&&<Toast msg={toast.msg} type={toast.type} onClose={()=>setToast(null)}/>}
 <div className="dashboard">
 <div className="dash-header">
