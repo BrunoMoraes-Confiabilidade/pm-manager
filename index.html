@@ -28,6 +28,83 @@ input,textarea,button,select{font-family:inherit}
    preservando matiz das cores de destaque. Mídia é re-invertida. */
 .app.light-theme{filter:invert(0.93) hue-rotate(180deg) saturate(1.05) contrast(0.95)}
 .app.light-theme img,.app.light-theme .bg-photo,.app.light-theme .keep-color{filter:invert(1) hue-rotate(180deg) saturate(0.96) contrast(1.05)}
+
+/* ════════════════════════════════════════════════════════════
+   TEMA SIMPLES — claro, limpo, baixa poluição visual, foco no que importa.
+   Não usa filtro de inversão: aplica uma paleta clara real por cima
+   das superfícies escuras inline mais comuns do app.
+   ════════════════════════════════════════════════════════════ */
+.app.simple-theme{background:#F4F6FA!important}
+.app.simple-theme .bg-photo,.app.simple-theme .bg-texture,.app.simple-theme .bg-grad{display:none!important}
+/* fundo dos overlays escuros */
+.app.simple-theme .bg-photo+div{background:rgba(15,23,42,.35)!important}
+/* superfícies de cartão/painel: força claro */
+.app.simple-theme [style*="rgba(15,23,42"],
+.app.simple-theme [style*="rgba(11,25,41"],
+.app.simple-theme [style*="rgba(8,14,28"],
+.app.simple-theme [style*="background:#0B1929"],
+.app.simple-theme [style*="background:#0e1d33"],
+.app.simple-theme [style*="background:#10203a"],
+.app.simple-theme [style*="background:#13243f"],
+.app.simple-theme [style*="linear-gradient(135deg,rgba(15,23,42"],
+.app.simple-theme [style*="linear-gradient(135deg,rgba(11,25,41"]{
+  background:#FFFFFF!important;
+  background-image:none!important;
+  box-shadow:0 1px 3px rgba(15,23,42,.06)!important;
+}
+/* bordas escuras → cinza muito claro */
+.app.simple-theme [style*="#1E3A5F"],
+.app.simple-theme [style*="#1e3a5f"],
+.app.simple-theme [style*="#334155"]{border-color:#E2E8F0!important}
+/* texto claro → escuro legível */
+.app.simple-theme,
+.app.simple-theme [style*="color:#F8FAFC"],
+.app.simple-theme [style*="color:#F1F5F9"],
+.app.simple-theme [style*="color:#CBD5E1"],
+.app.simple-theme [style*="color:#E2E8F0"]{color:#0F172A!important}
+/* texto secundário cinza-azulado → cinza neutro suave */
+.app.simple-theme [style*="color:#94A3B8"],
+.app.simple-theme [style*="color:#64748B"],
+.app.simple-theme [style*="color:#475569"]{color:#64748B!important}
+/* cabeçalhos de tabela escuros */
+.app.simple-theme thead [style*="#13243f"],
+.app.simple-theme th[style*="#13243f"]{background:#F1F5F9!important;color:#334155!important}
+/* remove brilhos coloridos fortes (poluição), mantém sombra sutil dos cartões */
+.app.simple-theme [style*="boxShadow:0 4px 14px"],
+.app.simple-theme [style*="boxShadow:0 8px"],
+.app.simple-theme [style*="boxShadow:0 0 10px"],
+.app.simple-theme [style*="boxShadow:0 0 8px"],
+.app.simple-theme [style*="box-shadow:0 4px 14px"]{box-shadow:none!important}
+.app.simple-theme [style*="textShadow"],
+.app.simple-theme [style*="text-shadow"]{text-shadow:none!important}
+/* o "miolo" colorido das pílulas de status fica intacto (são keep-color abaixo) */
+/* inputs/select no tema simples */
+.app.simple-theme input,.app.simple-theme select,.app.simple-theme textarea{background:#FFFFFF!important;color:#0F172A!important;border-color:#CBD5E1!important}
+.app.simple-theme input::placeholder,.app.simple-theme textarea::placeholder{color:#94A3B8!important}
+/* campos editáveis do DCS: leve azul, discreto */
+.app.simple-theme .dcs-edit,.app.simple-theme select.dcs-edit,.app.simple-theme input.dcs-edit,.app.simple-theme textarea.dcs-edit{background:#EFF6FF!important;border:1px solid #BFDBFE!important}
+/* a logo/textos da marca no topo do dashboard */
+.app.simple-theme .brand-sub{color:#B45309!important}
+/* DESTAQUE: números grandes (KPIs) ainda mais fortes e nítidos */
+.app.simple-theme [style*="fontSize:32"],.app.simple-theme [style*="fontSize:30"],.app.simple-theme [style*="fontSize:24"],.app.simple-theme [style*="fontSize:22"]{font-weight:800!important}
+/* ── Superfícies definidas por CLASSE (não inline) ── */
+.app.simple-theme .dash-card{background:#FFFFFF!important;border:1px solid #E2E8F0!important;backdrop-filter:none!important;box-shadow:0 1px 3px rgba(15,23,42,.06)!important}
+.app.simple-theme .dash-card:hover{background:#F8FAFC!important;border-color:#3B82F6!important;box-shadow:0 4px 12px rgba(37,99,235,.12)!important;transform:translateY(-2px)}
+.app.simple-theme .dash-card .icon{animation:none!important}
+.app.simple-theme .dash-card .card-title{color:#0F172A!important}
+.app.simple-theme .dash-card .card-desc{color:#64748B!important}
+.app.simple-theme .modal{background:#FFFFFF!important;border:1px solid #E2E8F0!important;color:#0F172A!important}
+.app.simple-theme .modal-title{color:#0F172A!important}
+.app.simple-theme .overlay{background:rgba(15,23,42,.45)!important}
+.app.simple-theme .input-wrap{background:#FFFFFF!important;border:1px solid #CBD5E1!important}
+.app.simple-theme .input-field{color:#0F172A!important}
+.app.simple-theme .label{color:#334155!important}
+.app.simple-theme .empty{color:#64748B!important}
+.app.simple-theme .logo-area{background:#F1F5F9!important;border-color:#CBD5E1!important}
+.app.simple-theme .a3-sec .input-wrap,.app.simple-theme .a3-sec textarea.input-field,.app.simple-theme .a3-sec .a3-cell{background:#EFF6FF!important;border:1px solid #BFDBFE!important}
+.app.simple-theme .a3-sec .label{color:#1D4ED8!important}
+/* reduz animação de float/pulse (menos poluição) */
+.app.simple-theme *{animation-duration:0s!important}
 /* Campos editáveis bem visíveis no tema escuro */
 .app:not(.light-theme) .dcs-edit,.app:not(.light-theme) select.dcs-edit,.app:not(.light-theme) input.dcs-edit,.app:not(.light-theme) textarea.dcs-edit{background:rgba(37,99,235,.12)!important;border:1px solid rgba(96,165,250,.45)!important;box-shadow:inset 0 0 0 1px rgba(96,165,250,.08)}
 .app:not(.light-theme) .dcs-edit:focus{border-color:#60A5FA!important;background:rgba(37,99,235,.2)!important}
@@ -337,8 +414,11 @@ function App(){
 const[phase,setPhase]=useState("loading");
 const[toast,setToast]=useState(null);
 const[synced,setSynced]=useState(false);
-const[theme,setTheme]=useState(()=>{try{return localStorage.getItem("pm-theme")||"dark"}catch{return"dark"}});
-const toggleTheme=()=>{setTheme(t=>{const n=t==="dark"?"light":"dark";try{localStorage.setItem("pm-theme",n)}catch{}return n})};
+const[theme,setTheme]=useState(()=>{try{const t=localStorage.getItem("pm-theme");return(t==="dark"||t==="light"||t==="simple")?t:"dark"}catch{return"dark"}});
+const THEME_ORDER=["dark","light","simple"];
+const THEME_NEXT={dark:"light",light:"simple",simple:"dark"};
+const THEME_LABEL={dark:"🌙 Tema Escuro",light:"☀ Tema Claro",simple:"📋 Tema Simples"};
+const toggleTheme=()=>{setTheme(t=>{const n=THEME_NEXT[t]||"dark";try{localStorage.setItem("pm-theme",n)}catch{}return n})};
 const[pendingOps,setPendingOps]=useState(outboxCount());
 const[isOnline,setIsOnline]=useState(navigator.onLine);
 useEffect(()=>{
@@ -1162,7 +1242,7 @@ if(phase==="loading")return<div className="app" style={{display:"flex",alignItem
 
 // ═══ DASHBOARD ═══
 if(phase==="dashboard"&&loggedUser&&currentCompany)return(
-<div className={"app"+(theme==="light"?" light-theme":"")}>{bgImage?<><div className="bg-photo" style={{position:"fixed",inset:0,zIndex:0,backgroundImage:`url(${bgImage})`,backgroundSize:"cover",backgroundPosition:"center",backgroundAttachment:"fixed"}}/><div style={{position:"fixed",inset:0,zIndex:0,background:"rgba(8,14,28,.82)"}}/></>:<><div className="bg-texture"/><div className="bg-grad"/></>}
+<div className={"app"+(theme==="light"?" light-theme":"")+(theme==="simple"?" simple-theme":"")}>{bgImage&&theme!=="simple"?<><div className="bg-photo" style={{position:"fixed",inset:0,zIndex:0,backgroundImage:`url(${bgImage})`,backgroundSize:"cover",backgroundPosition:"center",backgroundAttachment:"fixed"}}/><div style={{position:"fixed",inset:0,zIndex:0,background:"rgba(8,14,28,.82)"}}/></>:<><div className="bg-texture"/><div className="bg-grad"/></>}
 {toast&&<Toast msg={toast.msg} type={toast.type} onClose={()=>setToast(null)}/>}
 <div className="dashboard">
 <div className="dash-header">
@@ -1172,7 +1252,7 @@ if(phase==="dashboard"&&loggedUser&&currentCompany)return(
   </div>
   <div style={{display:"flex",gap:8,alignItems:"center"}}>
     {(pendingOps>0||!isOnline)&&<div style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,fontSize:12,fontWeight:600,background:isOnline?"rgba(245,158,11,.15)":"rgba(100,116,139,.15)",border:`1px solid ${isOnline?"rgba(245,158,11,.4)":"rgba(100,116,139,.4)"}`,color:isOnline?"#F59E0B":"#94A3B8"}} title={isOnline?"Há alterações aguardando envio à nuvem":"Você está offline — alterações ficam salvas no aparelho e serão enviadas ao reconectar"}>{isOnline?"☁":"📴"} {pendingOps>0?`${pendingOps} pendente(s)`:"Offline"}{isOnline&&pendingOps>0&&<button onClick={()=>flushOutbox().then(r=>{setPendingOps(r.left);notify(r.sent>0?`☁ ${r.sent} enviada(s)!`:"Nada a enviar agora.","success")})} style={{background:"none",border:"none",color:"#F59E0B",cursor:"pointer",fontSize:12,fontWeight:700,textDecoration:"underline",padding:0}}>enviar</button>}</div>}
-    <button style={{background:"rgba(168,85,247,.15)",border:"1px solid rgba(168,85,247,.3)",color:"#A855F7",padding:"8px 16px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer"}} title={theme==="dark"?"Mudar para tema claro":"Mudar para tema escuro"} onClick={toggleTheme}>{theme==="dark"?"☀ Tema Claro":"🌙 Tema Escuro"}</button>
+    <button style={{background:"rgba(168,85,247,.15)",border:"1px solid rgba(168,85,247,.3)",color:"#A855F7",padding:"8px 16px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer"}} title={`Tema atual: ${THEME_LABEL[theme].replace(/^[^ ]+ /,"")}. Clique para alternar (Escuro → Claro → Simples).`} onClick={toggleTheme}>{THEME_LABEL[theme]}</button>
     <button style={{background:"rgba(59,130,246,.15)",border:"1px solid rgba(59,130,246,.3)",color:"#60A5FA",padding:"8px 16px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer"}} title="Voltar para tela de login" onClick={()=>{clearSession();setLoggedUser(null);setCurrentCompany(null);setPhase("main");setScreen("login");setMat("");setPw("");setDashPhase("home")}}>🏠 Tela Inicial</button>
     <button className="logout-btn" onClick={exitCompany}>Sair</button>
   </div>
