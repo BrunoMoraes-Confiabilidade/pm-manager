@@ -41,6 +41,11 @@ input,textarea,button,select{font-family:inherit}
 .app.simple-theme .dash-card:hover{transform:none!important}
 /* no tema simples, deixa a foto de fundo mais perceptível (overlay mais leve) */
 .app.simple-theme .bg-photo-overlay{background:rgba(8,14,28,.55)!important}
+/* ── Tamanho de fonte (P/M/G) ── escala proporcional de toda a interface.
+   P = padrão (100%). M e G aumentam tudo de forma proporcional. */
+.app.fs-p{zoom:1}
+.app.fs-m{zoom:1.12}
+.app.fs-g{zoom:1.25}
 /* Campos editáveis bem visíveis no tema escuro */
 .app:not(.light-theme) .dcs-edit,.app:not(.light-theme) select.dcs-edit,.app:not(.light-theme) input.dcs-edit,.app:not(.light-theme) textarea.dcs-edit{background:rgba(37,99,235,.12)!important;border:1px solid rgba(96,165,250,.45)!important;box-shadow:inset 0 0 0 1px rgba(96,165,250,.08)}
 .app:not(.light-theme) .dcs-edit:focus{border-color:#60A5FA!important;background:rgba(37,99,235,.2)!important}
@@ -355,6 +360,10 @@ const THEME_ORDER=["dark","light","simple"];
 const THEME_NEXT={dark:"light",light:"simple",simple:"dark"};
 const THEME_LABEL={dark:"🌙 Tema Escuro",light:"☀ Tema Claro",simple:"📋 Tema Simples"};
 const toggleTheme=()=>{setTheme(t=>{const n=THEME_NEXT[t]||"dark";try{localStorage.setItem("pm-theme",n)}catch{}return n})};
+const[fontSize,setFontSize]=useState(()=>{try{const f=localStorage.getItem("pm-fontsize");return(f==="p"||f==="m"||f==="g")?f:"p"}catch{return"p"}});
+const FONT_NEXT={p:"m",m:"g",g:"p"};
+const FONT_LABEL={p:"🔤 Fonte P",m:"🔤 Fonte M",g:"🔤 Fonte G"};
+const cycleFont=()=>{setFontSize(f=>{const n=FONT_NEXT[f]||"p";try{localStorage.setItem("pm-fontsize",n)}catch{}return n})};
 const[pendingOps,setPendingOps]=useState(outboxCount());
 const[isOnline,setIsOnline]=useState(navigator.onLine);
 useEffect(()=>{
@@ -1179,7 +1188,7 @@ if(phase==="loading")return<div className="app" style={{display:"flex",alignItem
 
 // ═══ DASHBOARD ═══
 if(phase==="dashboard"&&loggedUser&&currentCompany)return(
-<div className={"app"+(theme==="light"?" light-theme":"")+(theme==="simple"?" simple-theme":"")}>{bgImage?<><div className="bg-photo" style={{position:"fixed",inset:0,zIndex:0,backgroundImage:`url(${bgImage})`,backgroundSize:"cover",backgroundPosition:"center",backgroundAttachment:"fixed"}}/><div className="bg-photo-overlay" style={{position:"fixed",inset:0,zIndex:0,background:"rgba(8,14,28,.82)"}}/></>:<><div className="bg-texture"/><div className="bg-grad"/></>}
+<div className={"app fs-"+fontSize+(theme==="light"?" light-theme":"")+(theme==="simple"?" simple-theme":"")}>{bgImage?<><div className="bg-photo" style={{position:"fixed",inset:0,zIndex:0,backgroundImage:`url(${bgImage})`,backgroundSize:"cover",backgroundPosition:"center",backgroundAttachment:"fixed"}}/><div className="bg-photo-overlay" style={{position:"fixed",inset:0,zIndex:0,background:"rgba(8,14,28,.82)"}}/></>:<><div className="bg-texture"/><div className="bg-grad"/></>}
 {toast&&<Toast msg={toast.msg} type={toast.type} onClose={()=>setToast(null)}/>}
 <div className="dashboard">
 <div className="dash-header">
@@ -1190,6 +1199,7 @@ if(phase==="dashboard"&&loggedUser&&currentCompany)return(
   <div style={{display:"flex",gap:8,alignItems:"center"}}>
     {(pendingOps>0||!isOnline)&&<div style={{display:"flex",alignItems:"center",gap:6,padding:"8px 14px",borderRadius:8,fontSize:12,fontWeight:600,background:isOnline?"rgba(245,158,11,.15)":"rgba(100,116,139,.15)",border:`1px solid ${isOnline?"rgba(245,158,11,.4)":"rgba(100,116,139,.4)"}`,color:isOnline?"#F59E0B":"#94A3B8"}} title={isOnline?"Há alterações aguardando envio à nuvem":"Você está offline — alterações ficam salvas no aparelho e serão enviadas ao reconectar"}>{isOnline?"☁":"📴"} {pendingOps>0?`${pendingOps} pendente(s)`:"Offline"}{isOnline&&pendingOps>0&&<button onClick={()=>flushOutbox().then(r=>{setPendingOps(r.left);notify(r.sent>0?`☁ ${r.sent} enviada(s)!`:"Nada a enviar agora.","success")})} style={{background:"none",border:"none",color:"#F59E0B",cursor:"pointer",fontSize:12,fontWeight:700,textDecoration:"underline",padding:0}}>enviar</button>}</div>}
     <button style={{background:"rgba(168,85,247,.15)",border:"1px solid rgba(168,85,247,.3)",color:"#A855F7",padding:"8px 16px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer"}} title={`Tema atual: ${THEME_LABEL[theme].replace(/^[^ ]+ /,"")}. Clique para alternar (Escuro → Claro → Simples).`} onClick={toggleTheme}>{THEME_LABEL[theme]}</button>
+    <button style={{background:"rgba(56,189,248,.15)",border:"1px solid rgba(56,189,248,.3)",color:"#38BDF8",padding:"8px 16px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer"}} title={`Tamanho da fonte: ${FONT_LABEL[fontSize].replace(/^[^ ]+ /,"")}. Clique para alternar (P → M → G).`} onClick={cycleFont}>{FONT_LABEL[fontSize]}</button>
     <button style={{background:"rgba(59,130,246,.15)",border:"1px solid rgba(59,130,246,.3)",color:"#60A5FA",padding:"8px 16px",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer"}} title="Voltar para tela de login" onClick={()=>{clearSession();setLoggedUser(null);setCurrentCompany(null);setPhase("main");setScreen("login");setMat("");setPw("");setDashPhase("home")}}>🏠 Tela Inicial</button>
     <button className="logout-btn" onClick={exitCompany}>Sair</button>
   </div>
