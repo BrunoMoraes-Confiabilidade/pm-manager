@@ -288,6 +288,76 @@ select.input-field option{background:#0F172A;color:#F1F5F9}
 </div></div>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
 <link rel="preconnect" href="https://pm-manager-3c06f-default-rtdb.firebaseio.com" crossorigin>
+<link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin>
+<script id="pmauth">
+/* ═══ Autenticação anônima do Firebase (camada de transporte) ═══
+   Anexa um ID token (login anônimo) a TODA chamada REST ao Realtime Database,
+   para que as regras possam exigir "auth != null" (banco fechado ao público)
+   sem mudar nada na experiência do app. 100% REST, sem SDK.
+   É um wrapper de window.fetch — NÃO altera os blocos appjs/appsrc. */
+(function(){
+  var API_KEY="AIzaSyBJjdjZoTg6AmGMf5XuH4Qpahz8Pl6TTBw";
+  var DB="https://pm-manager-3c06f-default-rtdb.firebaseio.com";
+  var SIGNUP_URL="https://identitytoolkit.googleapis.com/v1/accounts:signUp?key="+API_KEY;
+  var REFRESH_URL="https://securetoken.googleapis.com/v1/token?key="+API_KEY;
+  var LS_KEY="pm-fbauth";
+  var _fetch=window.fetch.bind(window);   // fetch original (evita recursão)
+  var st=null;        // {idToken, refreshToken, expMs, localId}
+  var inflight=null;  // Promise<idToken> de um signUp/refresh em andamento
+
+  function load(){try{var s=JSON.parse(localStorage.getItem(LS_KEY)||"null");if(s&&s.refreshToken)st=s;}catch(e){}}
+  function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(st));}catch(e){}}
+  load();
+
+  function signUp(){
+    return _fetch(SIGNUP_URL,{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({returnSecureToken:true})})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        if(!j||!j.idToken)throw new Error("anon signUp falhou");
+        st={idToken:j.idToken,refreshToken:j.refreshToken,
+            expMs:Date.now()+(parseInt(j.expiresIn,10)||3600)*1000,localId:j.localId};
+        save();return st.idToken;
+      });
+  }
+  function refresh(){
+    var body="grant_type=refresh_token&refresh_token="+encodeURIComponent(st.refreshToken);
+    return _fetch(REFRESH_URL,{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded"},body:body})
+      .then(function(r){return r.json();})
+      .then(function(j){
+        if(!j||!j.id_token)throw new Error("refresh falhou");
+        st={idToken:j.id_token,refreshToken:j.refresh_token||st.refreshToken,
+            expMs:Date.now()+(parseInt(j.expires_in,10)||3600)*1000,localId:j.user_id||st.localId};
+        save();return st.idToken;
+      })
+      .catch(function(){st=null;return signUp();}); // refresh token inválido → novo usuário anônimo
+  }
+  function getToken(){
+    if(st&&st.idToken&&(st.expMs-Date.now())>300000)return Promise.resolve(st.idToken); // válido (>5min)
+    if(inflight)return inflight;
+    var p=(st&&st.refreshToken)?refresh():signUp();
+    inflight=p.then(function(t){inflight=null;return t;},function(e){inflight=null;throw e;});
+    return inflight;
+  }
+  // Inicia o login cedo, para o token já estar pronto quando o app for ler dados.
+  try{getToken().catch(function(){});}catch(e){}
+
+  window.fetch=function(input,init){
+    var url="";
+    try{url=(typeof input==="string")?input:((input&&input.url)||"");}catch(e){}
+    if(url.indexOf(DB)===0 && url.indexOf("auth=")===-1){
+      return getToken().then(function(tok){
+        var u=url+(url.indexOf("?")===-1?"?":"&")+"auth="+encodeURIComponent(tok);
+        return (typeof input==="string")?_fetch(u,init):_fetch(new Request(u,input),init);
+      },function(){
+        return _fetch(input,init); // sem token (ex.: offline) → segue como está; o app cai no cache/fila
+      });
+    }
+    return _fetch(input,init);
+  };
+})();
+</script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
 <script id="appjs">
@@ -3942,7 +4012,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
     "  var isFirebase = /firebaseio\\.com$/.test(url.host);",
     "  if(isFirebase){",
     // Dados: network-first (sempre tenta online), cai no cache se offline
-    "    e.respondWith((async function(){try{var fresh=await fetch(req);var c=await caches.open('pm-manager-data');c.put(req,fresh.clone());return fresh;}catch(err){var cached=await caches.match(req);if(cached)return cached;return new Response('null',{headers:{'Content-Type':'application/json'}});}})());",
+    "    var ck=req;try{var _u=new URL(req.url);if(_u.searchParams.has('auth')){_u.searchParams.delete('auth');ck=new Request(_u.toString());}}catch(e){}",
+    "    e.respondWith((async function(){try{var fresh=await fetch(req);var c=await caches.open('pm-manager-data');c.put(ck,fresh.clone());return fresh;}catch(err){var cached=await caches.match(ck);if(cached)return cached;return new Response('null',{headers:{'Content-Type':'application/json'}});}})());",
     "    return;",
     "  }",
     "  if(isShell){",
