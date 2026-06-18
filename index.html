@@ -346,15 +346,11 @@ select.input-field option{background:#0F172A;color:#F1F5F9}
   window.fetch=function(input,init){
     var url="";
     try{url=(typeof input==="string")?input:((input&&input.url)||"");}catch(e){}
-    if(url.indexOf(DB)===0 && url.indexOf("auth=")===-1){
-      return getToken().then(function(tok){
-        var u=url+(url.indexOf("?")===-1?"?":"&")+"auth="+encodeURIComponent(tok);
-        return (typeof input==="string")?_fetch(u,init):_fetch(new Request(u,input),init);
-      },function(){
-        return _fetch(input,init); // sem token (ex.: offline) → segue como está; o app cai no cache/fila
-      });
-    }
-    return _fetch(input,init);
+    if(url.indexOf(DB)!==0||url.indexOf("auth=")!==-1)return _fetch(input,init);
+    var withAuth=function(tok){var u=url+(url.indexOf("?")===-1?"?":"&")+"auth="+encodeURIComponent(tok);return (typeof input==="string")?_fetch(u,init):_fetch(new Request(u,input),init);};
+    if(!navigator.onLine){return (st&&st.idToken)?withAuth(st.idToken):_fetch(input,init);}
+    if(st&&st.idToken&&(st.expMs-Date.now())>60000)return withAuth(st.idToken);
+    return getToken().then(withAuth,function(){return _fetch(input,init);});
   };
 })();
 </script>
@@ -3998,46 +3994,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
 /* ═══ PWA: Service Worker para uso offline (etapa 1 — consulta) ═══ */
 (function(){
   if(!("serviceWorker" in navigator))return;
-  // SW gerado em runtime (mantém o deploy de arquivo único). Cacheia o app e respostas do Firebase (GET).
-  var swCode = [
-    "var CACHE='pm-manager-v2';",
-    "var APP_URL=self.registration.scope;",
-    "self.addEventListener('install',function(e){self.skipWaiting();});",
-    "self.addEventListener('activate',function(e){e.waitUntil((async function(){var ks=await caches.keys();await Promise.all(ks.filter(function(k){return k!=='pm-manager-v2'&&k!=='pm-manager-data'}).map(function(k){return caches.delete(k)}));await self.clients.claim();})());});",
-    "self.addEventListener('fetch',function(e){",
-    "  var req=e.request;var url=new URL(req.url);",
-    "  if(req.method!=='GET'){return;}",
-    // App shell + CDNs (React/Babel/XLSX/qrcode): cache-first, atualiza em segundo plano (stale-while-revalidate)
-    "  var isShell = req.mode==='navigate' || /cloudflare|cdnjs|jsdelivr|unpkg/.test(url.host) || url.origin===location.origin;",
-    "  var isFirebase = /firebaseio\\.com$/.test(url.host);",
-    "  if(isFirebase){",
-    // Dados: network-first (sempre tenta online), cai no cache se offline
-    "    var ck=req;try{var _u=new URL(req.url);if(_u.searchParams.has('auth')){_u.searchParams.delete('auth');ck=new Request(_u.toString());}}catch(e){}",
-    "    e.respondWith((async function(){try{var fresh=await fetch(req);var c=await caches.open('pm-manager-data');c.put(ck,fresh.clone());return fresh;}catch(err){var cached=await caches.match(ck);if(cached)return cached;return new Response('null',{headers:{'Content-Type':'application/json'}});}})());",
-    "    return;",
-    "  }",
-    "  if(isShell){",
-    "    e.respondWith((async function(){var cache=await caches.open('pm-manager-v2');var cached=await cache.match(req);var net=fetch(req).then(function(r){if(r&&r.status===200)cache.put(req,r.clone());return r;}).catch(function(){return cached;});return cached||net;})());",
-    "    return;",
-    "  }",
-    "});"
-  ].join("\n");
-  try{
-    var blob=new Blob([swCode],{type:"text/javascript"});
-    var swUrl=URL.createObjectURL(blob);
-    navigator.serviceWorker.register(swUrl).then(function(reg){
-      // pré-cacheia a própria página + bibliotecas (garantia de abrir offline)
-      if(window.caches){caches.open("pm-manager-v2").then(function(c){
-        var assets=[location.href,
-          "https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js",
-          "https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js",
-          "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",
-          "https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js",
-          "https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js"];
-        assets.forEach(function(u){c.add(u).catch(function(){});});
-      });}
-    }).catch(function(){});
-  }catch(e){}
+  window.addEventListener("load",function(){navigator.serviceWorker.register("./sw.js").then(function(r){try{r.update();}catch(e){}}).catch(function(){});});
 })();
 
 /* ═══ Indicador de status online/offline ═══ */
