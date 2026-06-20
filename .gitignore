@@ -1,0 +1,17 @@
+# Dependências (geradas por npm install)
+node_modules/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Vercel
+.vercel
+
+# Variáveis de ambiente locais (nunca commitar segredos)
+.env
+.env.local
+.env*.local
+
+# Sistema
+.DS_Store
