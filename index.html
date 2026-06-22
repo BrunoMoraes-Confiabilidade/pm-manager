@@ -800,6 +800,7 @@ const[reqFilter,setReqFilter]=useState("all");const[qrSize,setQrSize]=useState(5
 
 // Dashboard
 const[dashPhase,setDashPhase]=useState("home"); // home, reports, reportUserHist, reportCompanyHist, bancoDados, bdUpload
+const[procManual,setProcManual]=useState(null);
 const[bdCategory,setBdCategory]=useState("");const[bdFiles,setBdFiles]=useState({centroTrabalho:[],arvoreAtivos:[],programacao:[]});
 const[hcList,setHcList]=useState([]);const[hcForm,setHcForm]=useState({terminal:"",funcao:"",matricula:"",nome:"",turno:"",centroTrabalho:""});const[hcEditing,setHcEditing]=useState(null);const[hcFilter,setHcFilter]=useState("");const[escalaDate,setEscalaDate]=useState(new Date().toISOString().slice(0,10));const[escalaMonth,setEscalaMonth]=useState(new Date().toISOString().slice(0,7));
 const[hcDailyMonth,setHcDailyMonth]=useState(new Date().toISOString().slice(0,7));const[hcOverrides,setHcOverrides]=useState({});const[hcMods,setHcMods]=useState({});
@@ -1881,7 +1882,7 @@ if(phase==="dashboard"&&loggedUser&&currentCompany)return(
     {key:"confiabilidade",icon:<PMIcon n="trend"/>,title:"Confiabilidade",desc:"Plano de Manutenção e confiabilidade de ativos"},
     {key:"procedimentos",icon:<PMIcon n="book"/>,title:"Procedimentos",desc:"Links e documentos"},
     {key:"bancoDados",icon:<PMIcon n="database"/>,title:"Banco de Dados",desc:"Cadastros, registros e relatórios"}
-  ].map(c=>{const access=c.key==="gsom"||c.key==="confiabilidade"?true:hasAccess(c.key);const pending=hasPendingRequest(c.key);const isImpl=c.key==="headCount"||c.key==="bancoDados"||c.key==="reports"||c.key==="dcs"||c.key==="a3"||c.key==="notaManutencao"||c.key==="gsom";return(
+  ].map(c=>{const access=c.key==="gsom"||c.key==="confiabilidade"||c.key==="procedimentos"?true:hasAccess(c.key);const pending=hasPendingRequest(c.key);const isImpl=c.key==="headCount"||c.key==="bancoDados"||c.key==="reports"||c.key==="dcs"||c.key==="a3"||c.key==="notaManutencao"||c.key==="gsom"||c.key==="procedimentos";return(
     <div key={c.key} className="dash-card" style={!access?{opacity:.6,position:"relative"}:{position:"relative"}} onClick={()=>{
       if(!access){setAccessModule(c.key);setShowAccessModal(true);return}
       if(c.key==="headCount")setDashPhase("headCount");else if(c.key==="confiabilidade")setDashPhase("confiabilidade");
@@ -1891,6 +1892,7 @@ if(phase==="dashboard"&&loggedUser&&currentCompany)return(
       else if(c.key==="a3")setDashPhase("a3");
       else if(c.key==="gsom")setDashPhase("gsom");
       else if(c.key==="notaManutencao")setDashPhase("notaManutencao");
+      else if(c.key==="procedimentos")setDashPhase("procedimentos");
       else notify("🚧 Em desenvolvimento","info");
     }}>
       {!access&&<div style={{position:"absolute",top:8,right:8,fontSize:16}}>🔒</div>}
@@ -2607,6 +2609,47 @@ return(<div className="fade-in">
 <div style={{background:"rgba(59,130,246,.06)",borderRadius:10,border:"1px solid rgba(59,130,246,.15)",padding:"8px 12px",fontSize:12,color:"#94A3B8",marginBottom:14}}>💡 Em "Baixar modelo" você obtém a planilha (.xlsx) já com os dados cadastrados; edite no Excel e reenvie em "Importar (em massa)". A importação substitui toda a lista.</div>
 {(()=>{const q=arSearch.trim().toLowerCase();const filt=q?arList.filter(r=>AR_FIELDS.some(f=>String(r[f]||"").toLowerCase().includes(q))):arList;const CAP=300;const shown=filt.slice(0,CAP);return(<div><div style={{overflow:"auto",maxHeight:"60vh",border:"1px solid #1E293B",borderRadius:8}}><table style={{borderCollapse:"collapse",fontSize:11,whiteSpace:"nowrap",minWidth:"100%"}}><thead><tr>{AR_HEADERS.map((h,i)=><th key={i} style={{padding:"7px 10px",textAlign:"left",color:"#93C5FD",borderBottom:"2px solid #1E293B",background:"#0F172A",position:"sticky",top:0,fontWeight:700}}>{h}</th>)}</tr></thead><tbody>{shown.length?shown.map((r,ri)=><tr key={r.id||ri} style={{borderBottom:"1px solid #1E293B"}}>{AR_FIELDS.map((f,ci)=><td key={ci} style={{padding:"5px 10px",color:"#CBD5E1"}}>{r[f]==null||r[f]===""?"—":String(r[f])}</td>)}</tr>):<tr><td colSpan={AR_HEADERS.length} style={{padding:24,textAlign:"center",color:"#64748B"}}>{arList.length?"Nenhum resultado para o filtro.":"Nenhum ativo cadastrado. Importe a planilha ou baixe o modelo para começar."}</td></tr>}</tbody></table></div>{filt.length>CAP?<p style={{color:"#64748B",fontSize:12,marginTop:8}}>Mostrando {CAP} de {filt.length} — refine o filtro para ver os demais.</p>:null}</div>);})()}
 </div>}
+
+{/* ═══ PROCEDIMENTOS — Lista de Manuais ═══ */}
+{dashPhase==="procedimentos"&&<div className="fade-in">
+<button className="back-btn" onClick={()=>setDashPhase("home")}>← Voltar</button>
+<h2 style={{fontSize:18,fontWeight:700,margin:"20px 0 16px",color:"#CBD5E1"}}><PMIcon n="book" s={18} style={{verticalAlign:"-3px",marginRight:"6px"}}/>Manuais de Operação</h2>
+<div className="dash-grid" style={{maxWidth:700}}>
+  <div className="dash-card" onClick={()=>{setProcManual("confiabilidade");setDashPhase("procViewer")}}>
+    <div className="icon"><PMIcon n="book"/></div>
+    <div className="card-title">Manual — Módulo de Confiabilidade</div>
+    <div className="card-desc">Manual de operação do sistema de confiabilidade de ativos</div>
+  </div>
+</div>
+</div>}
+
+{/* ═══ PROCEDIMENTOS — Visualizador de PDF ═══ */}
+{dashPhase==="procViewer"&&(()=>{
+const PROC_PDFS={
+  confiabilidade:{
+    title:"Manual — Módulo de Confiabilidade",
+    // ── SUBSTITUA O VALOR VAZIO ABAIXO PELO DATA URI COMPLETO DO PDF ──
+    // Exemplo: "data:application/pdf;base64,JVBERi0xLj..."
+    // O conteúdo Base64 está no arquivo procedimentos.html que você anexou.
+    data:""
+  }
+};
+const m=PROC_PDFS[procManual]||{};
+const hasPdf=!!m.data;
+return(<div className="fade-in">
+<div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
+  <button className="back-btn" onClick={()=>setDashPhase("procedimentos")}>← Voltar</button>
+  <h2 style={{fontSize:16,fontWeight:700,color:"#CBD5E1",margin:0,flex:1}}><PMIcon n="book" s={16} style={{verticalAlign:"-2px",marginRight:6}}/>{m.title||""}</h2>
+  {hasPdf&&<a href={m.data} download={(m.title||"Manual")+".pdf"} style={{background:"rgba(59,130,246,.2)",border:"1px solid rgba(59,130,246,.4)",color:"#60A5FA",padding:"8px 14px",borderRadius:8,fontSize:13,fontWeight:600,textDecoration:"none",whiteSpace:"nowrap"}}>⬇ Baixar PDF</a>}
+</div>
+{hasPdf
+  ?<iframe src={m.data} style={{width:"100%",height:"calc(100vh - 160px)",border:"1px solid #1E3A5F",borderRadius:10,display:"block"}} title={m.title||""}/>
+  :<div style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16,color:"#64748B",border:"1px dashed #1E3A5F",borderRadius:10,padding:48,minHeight:300}}>
+    <PMIcon n="book" s={48}/>
+    <p style={{margin:0,fontSize:14,textAlign:"center",maxWidth:380}}>PDF ainda não configurado. No <code style={{color:"#60A5FA"}}>index.html</code>, localize <code style={{color:"#60A5FA"}}>PROC_PDFS.confiabilidade.data</code> e substitua o valor vazio pela string completa do PDF em Base64 (<code style={{color:"#60A5FA"}}>data:application/pdf;base64,…</code>).</p>
+  </div>}
+</div>);
+})()}
 
 {dashPhase==="relatorios"&&<div className="fade-in"><button className="back-btn" onClick={()=>setDashPhase("kanban")}>← Voltar</button><h2 style={{fontSize:18,fontWeight:700,margin:"20px 0 16px",color:"#CBD5E1"}}><PMIcon n="chart" s={18} style={{verticalAlign:"-3px",marginRight:"6px"}}/>Relatórios</h2><div className="dash-grid" style={{maxWidth:760}}><div className="dash-card" onClick={()=>setDashPhase("prRegistry")}><div className="icon"><PMIcon n="list"/></div><div className="card-title">Relatório de Programação</div><div className="card-desc">{prList.length} linha(s)</div></div><div className="dash-card" onClick={()=>setDashPhase("aproReport")}><div className="icon"><PMIcon n="report"/></div><div className="card-title">Relatório de OM Apropriada - Programada ou de Oportunidade</div><div className="card-desc">{aproList.length} apropriação(ões)</div></div><div className="dash-card" onClick={()=>setDashPhase("repPlanejada")}><div className="icon"><PMIcon n="list"/></div><div className="card-title">Solicitação de Manutenção Planejada</div><div className="card-desc">{notaList.filter(n=>n.tipo!=="P1").length} nota(s)</div></div><div className="dash-card" onClick={()=>setDashPhase("repCorretiva")}><div className="icon"><PMIcon n="list"/></div><div className="card-title">Registro de Manutenção Corretiva</div><div className="card-desc">{notaList.filter(n=>n.tipo==="P1").length} nota(s)</div></div></div></div>}{dashPhase==="repPlanejada"&&renderNotaReport("📋","Solicitação de Manutenção Planejada",n=>n.tipo!=="P1",[{h:"Nota",r:n=>n.uid},{h:"Tipo",r:n=>(NOTA_TIPOS.find(t=>t[0]===n.tipo)||[])[1]||n.tipo},{h:"Empresa",r:n=>n.empresa},{h:"Equipamento",r:n=>n.equipamento},{h:"Descrição",r:n=>n.descricaoCurta},{h:"Início (Data)",r:n=>dPonto(n.inicioData)},{h:"Início (Hora)",r:n=>n.inicioHora},{h:"Conclusão (Data)",r:n=>dPonto(n.conclData)},{h:"Conclusão (Hora)",r:n=>n.conclHora},{h:"Prioridade",r:n=>n.prioridade},{h:"Status",r:n=>n.statusNota},{h:"Criado por",r:n=>n.createdBy}])}{dashPhase==="repCorretiva"&&renderNotaReport("📋","Registro de Manutenção Corretiva",n=>n.tipo==="P1",[{h:"Nota",r:n=>n.uid},{h:"Empresa",r:n=>n.empresa},{h:"Equipamento",r:n=>n.equipamento},{h:"Descrição",r:n=>n.descricaoCurta},{h:"Início Trab. (Data)",r:n=>dPonto(n.confInicioData)},{h:"Início Trab. (Hora)",r:n=>n.confInicioHora},{h:"Fim Trab. (Data)",r:n=>dPonto(n.confFimData)},{h:"Fim Trab. (Hora)",r:n=>n.confFimHora},{h:"Confirmação",r:n=>n.confTexto},{h:"Status",r:n=>n.statusNota},{h:"Criado por",r:n=>n.createdBy}])}{dashPhase==="kanban"&&<div className="fade-in"><button className="back-btn" onClick={()=>setDashPhase("home")}>← Voltar</button><h2 style={{fontSize:18,fontWeight:700,margin:"20px 0 16px",color:"#CBD5E1"}}><PMIcon n="kanban" s={18} style={{verticalAlign:"-3px",marginRight:"6px"}}/>KANBAN</h2><div className="dash-grid" style={{maxWidth:700}}><div className="dash-card" onClick={()=>setDashPhase("relatorios")}><div className="icon"><PMIcon n="chart"/></div><div className="card-title">Relatórios</div><div className="card-desc">Programação · OM Apropriada · Planejada · Corretiva</div></div><div className="dash-card" onClick={()=>{setDashPhase("prDashboard")}}><div className="icon"><PMIcon n="chart"/></div><div className="card-title">Dashboard Pré e Pós PCM</div><div className="card-desc">Indicadores</div></div></div></div>}
 
