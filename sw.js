@@ -1,6 +1,6 @@
 /* PM Manager — Service Worker (offline-first PWA).
    Servido como arquivo real (/sw.js). Blob URL NAO funciona p/ SW em navegadores modernos. */
-var SHELL = 'pm-manager-shell-v6';
+var SHELL = 'pm-manager-shell-v7';
 var DATA  = 'pm-manager-data';
 var ASSETS = [
   './',
@@ -50,13 +50,14 @@ self.addEventListener('fetch', function (e) {
     e.respondWith((async function () {
       try {
         var fresh = await fetch(req);
-        var c = await caches.open(DATA);
-        c.put(ck, fresh.clone());
+        if (fresh && fresh.status === 200) { var c = await caches.open(DATA); c.put(ck, fresh.clone()); }
         return fresh;
       } catch (err) {
         var cached = await caches.match(ck);
         if (cached) return cached;
-        return new Response('null', { headers: { 'Content-Type': 'application/json' } });
+        /* Sem cache p/ este caminho: 504 (NAO 'null'). Assim o app cai no
+           cache local (localStorage) em vez de sobrescrever o dado com null. */
+        return new Response('null', { status: 504, statusText: 'Offline', headers: { 'Content-Type': 'application/json' } });
       }
     })());
     return;
