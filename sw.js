@@ -1,6 +1,6 @@
 /* PM Manager — Service Worker (offline-first PWA).
    Servido como arquivo real (/sw.js). Blob URL NAO funciona p/ SW em navegadores modernos. */
-var SHELL = 'pm-manager-shell-v5';
+var SHELL = 'pm-manager-shell-v6';
 var DATA  = 'pm-manager-data';
 var ASSETS = [
   './',
@@ -11,6 +11,10 @@ var ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js'
 ];
+
+self.addEventListener('message', function (e) {
+  if (e.data === 'skipWaiting') self.skipWaiting();
+});
 
 self.addEventListener('install', function (e) {
   self.skipWaiting();
@@ -58,18 +62,23 @@ self.addEventListener('fetch', function (e) {
     return;
   }
 
-  /* Navegacao (abrir o app): cache-first do shell -> abre offline na hora; atualiza em 2o plano. */
+  /* Navegacao (abrir o app): network-first -> quando online SEMPRE pega a ultima
+     versao do index.html; se estiver offline, cai no cache do shell. Isso garante
+     que toda atualizacao publicada chegue ao usuario sem limpar cache na mao. */
   if (req.mode === 'navigate') {
     e.respondWith((async function () {
-      var shell = (await caches.match('./index.html')) || (await caches.match('./'));
-      if (shell) {
-        fetch(req).then(function (r) {
-          if (r && r.status === 200) caches.open(SHELL).then(function (c) { c.put('./index.html', r.clone()); });
-        }).catch(function () {});
-        return shell;
+      try {
+        var fresh = await fetch(req);
+        if (fresh && fresh.status === 200) {
+          var c = await caches.open(SHELL);
+          c.put('./index.html', fresh.clone());
+        }
+        return fresh;
+      } catch (err) {
+        var shell = (await caches.match('./index.html')) || (await caches.match('./'));
+        if (shell) return shell;
+        return new Response('<h1>Offline</h1><p>Abra o app online uma vez para habilitar o modo offline.</p>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
       }
-      try { return await fetch(req); }
-      catch (err) { return new Response('<h1>Offline</h1><p>Abra o app online uma vez para habilitar o modo offline.</p>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } }); }
     })());
     return;
   }
