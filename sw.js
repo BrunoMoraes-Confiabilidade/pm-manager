@@ -1,6 +1,6 @@
 /* PM Manager — Service Worker (offline-first PWA).
    Servido como arquivo real (/sw.js). Blob URL NAO funciona p/ SW em navegadores modernos. */
-var SHELL = 'pm-manager-shell-v4';
+var SHELL = 'pm-manager-shell-v5';
 var DATA  = 'pm-manager-data';
 var ASSETS = [
   './',

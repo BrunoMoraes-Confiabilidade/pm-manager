@@ -2636,18 +2636,127 @@ const PROC_PDFS={
 };
 const m=PROC_PDFS[procManual]||{};
 const hasPdf=!!m.data;
+/* Conteúdo do manual renderizado NATIVAMENTE em HTML — funciona em qualquer
+   dispositivo (mobile inclusive), pois iframe de PDF via data: URI não abre no mobile. */
+const cTitle={fontSize:15,fontWeight:800,color:"#60A5FA",margin:"22px 0 8px",paddingBottom:6,borderBottom:"1px solid #1E3A5F"};
+const cSub={fontSize:13,fontWeight:700,color:"#93C5FD",margin:"14px 0 6px"};
+const cP={fontSize:13.5,lineHeight:1.6,color:"#CBD5E1",margin:"6px 0"};
+const cLi={fontSize:13.5,lineHeight:1.55,color:"#CBD5E1",margin:"3px 0"};
+const cNote={fontSize:12.5,lineHeight:1.5,color:"#FCD34D",background:"rgba(245,158,11,.08)",border:"1px solid rgba(245,158,11,.25)",borderRadius:8,padding:"10px 12px",margin:"10px 0"};
+const cTh={textAlign:"left",fontSize:12,fontWeight:700,color:"#fff",background:"#0B1929",padding:"7px 9px",border:"1px solid #1E3A5F"};
+const cTd={fontSize:12.5,color:"#CBD5E1",padding:"7px 9px",border:"1px solid #1E3A5F",verticalAlign:"top",lineHeight:1.5};
+const H=s=>({dangerouslySetInnerHTML:{__html:s}});
+const MAN=[
+  {h:"1. Visão Geral do Módulo"},
+  {p:"O <b>Módulo de Confiabilidade</b> reúne as ferramentas de planejamento e controle de manutenção preventiva da RUMO Terminais. Ele opera dentro do <b>PM Manager</b> — aplicativo web/PWA acessível via navegador e mobile, sem necessidade de instalação adicional."},
+  {p:"O módulo engloba atualmente:"},
+  {u:["<b>Plano de Manutenção</b> — solicitação, aprovação e cronograma de planos preventivos.","<b>Fluxo de Aprovação</b> — controle de status com rastreabilidade de quem aprovou e quando.","<b>Gerenciamento de Itens</b> — cadastro de equipamentos, planos e datas por ciclo de manutenção.","<b>Cronograma Gantt</b> — visualização do calendário de planos aprovados.","<b>Integração Excel</b> — importação e exportação de itens via planilha (.xlsx)."]},
+  {h:"2. Perfis de Usuário e Permissões"},
+  {p:"O PM Manager possui controle de acesso por perfil. Para o Módulo de Confiabilidade são relevantes os seguintes perfis:"},
+  {table:{head:["Perfil","Pode fazer no Módulo de Confiabilidade"],rows:[
+    ["Gerente da Conta / Administrador","Liberar/bloquear o Fluxo de Aprovação; todas as ações do Responsável; excluir itens de planos; gerenciar permissões de outros usuários"],
+    ["Responsável da Confiabilidade (Edição em 'Plano de Manutenção')","Analisar e aprovar/rejeitar/ajustar solicitações; editar status no cronograma; adicionar e importar itens; exportar planilha de itens"],
+    ["Operacional / Técnico (Edição em 'Plano de Manutenção')","Criar novas solicitações de Plano de Manutenção; visualizar o cronograma"],
+    ["Usuário com nível Consulta","Apenas visualizar solicitações e cronograma; sem poder criar ou editar"]]}},
+  {note:"Permissões são concedidas pelo Gerente da Conta em ⚙ Configurações da empresa → Gerenciar Acessos. O módulo 'Plano de Manutenção' precisa ter nível Edição para criar solicitações e gerenciar itens."},
+  {h:"3. Acessando o Módulo de Confiabilidade"},
+  {p:"Após fazer login no PM Manager com sua matrícula e senha:"},
+  {u:["Na tela <b>Módulo de Manutenção</b>, localize o card <b>Confiabilidade</b> (ícone de gráfico de tendência).","Toque no card — o acesso é <b>livre para todos os usuários logados</b>, sem necessidade de aprovação prévia.","A tela <b>Confiabilidade</b> exibe o card <b>Plano de Manutenção</b>.","Toque em <b>Plano de Manutenção</b> para abrir a tela de solicitações (requer permissão de Consulta ou Edição)."]},
+  {note:"Se o card Plano de Manutenção aparecer com ícone 🔐, seu usuário não possui permissão. Toque no card e selecione 'Solicitar Acesso' para enviar uma requisição ao Gerente da Conta."},
+  {h:"4. Plano de Manutenção — Visão Geral"},
+  {p:"A tela <b>Plano de Manutenção — Solicitações</b> é o ponto central do módulo. Ela exibe:"},
+  {u:["<b>Contador de solicitações</b> — total de registros cadastrados.","<b>Indicador de Fluxo de Aprovação</b> — verde (🔓 Liberado) ou vermelho (🔒 Bloqueado). Quando bloqueado, apenas a visualização é permitida.","<b>Lista de solicitações</b> — cards com empresa, área, solicitante, o quê/onde, equipamento, justificativa, prioridade e status.","<b>Cronograma Gantt</b> — barras de progresso das solicitações com datas início/fim.","<b>Legenda de cores</b> — Pendente (laranja), Aprovado (verde), Em ajuste (azul), Rejeitado (vermelho), Concluído (roxo)."]},
+  {table:{head:["Status","Cor","Significado"],rows:[
+    ["Pendente","🟠 Laranja","Solicitação recém-criada, aguardando análise"],
+    ["Aprovado","🟢 Verde","Aprovado pelo Responsável da Confiabilidade, agendado"],
+    ["Em ajuste","🔵 Azul","Devolvido para revisão pela área solicitante"],
+    ["Rejeitado","🔴 Vermelho","Recusado pelo Responsável da Confiabilidade"],
+    ["Concluído","🟣 Roxo","Plano executado e finalizado"]]}},
+  {h:"5. Criando uma Nova Solicitação de Plano"},
+  {p:"Qualquer usuário com permissão de <b>Edição</b> no módulo pode abrir uma solicitação. O campo <b>Fluxo de Aprovação</b> não precisa estar liberado para criar — mas precisa estar liberado para que o Responsável aprove."},
+  {sub:"Passo a passo"},
+  {u:["Na tela Plano de Manutenção, toque em <b>+ Nova Solicitação</b> (canto superior direito).","Preencha o formulário (veja a tabela de campos abaixo).","Toque em <b>Salvar</b>. A solicitação é criada com status <b>Pendente</b>."]},
+  {sub:"Campos do formulário"},
+  {table:{head:["Campo","Obrigatório","Descrição"],rows:[
+    ["Empresa","Sim","Nome da empresa / terminal solicitante"],
+    ["Área","Sim","Operacional ou Técnico"],
+    ["Solicitante","Sim","Nome do responsável pela solicitação"],
+    ["O quê","Sim","Descrição do plano ou atividade a ser executada"],
+    ["Onde","Sim","Local, área ou equipamento macro onde será executado"],
+    ["Equipamento","Não","Identificação específica do equipamento (tag, código SAP)"],
+    ["Justificativa","Não","Motivo técnico ou operacional da solicitação"],
+    ["Prioridade","Sim","Alta, Média ou Baixa"]]}},
+  {note:"Após salvar, a solicitação aparece imediatamente na lista com status Pendente. O Responsável da Confiabilidade receberá a solicitação para análise."},
+  {h:"6. Fluxo de Aprovação"},
+  {p:"O fluxo de aprovação é o processo pelo qual uma solicitação <b>Pendente</b> é analisada pelo <b>Responsável da Confiabilidade</b> e evolui até <b>Aprovado</b> ou <b>Rejeitado</b>."},
+  {table:{head:["Etapa","Ator","Ação"],rows:[
+    ["1 — Criação","Área solicitante (Operacional / Técnico)","Abre nova solicitação → status: Pendente"],
+    ["2 — Análise","Responsável da Confiabilidade","Revisa o pedido. Pode: Aprovar (define data de início e previsão de entrega); Devolver em ajuste (descreve o que corrigir); Rejeitar (informa o motivo)"],
+    ["3 — Ajuste (opcional)","Área solicitante","Edita a solicitação conforme orientação e resubmete (retorna a Pendente)"],
+    ["4 — Conclusão","Responsável da Confiabilidade","Altera o status para Concluído após execução do plano"]]}},
+  {sub:"Como o Responsável analisa uma solicitação"},
+  {u:["Na seção <b>Solicitações</b>, toque em <b>🗂 Solicitações (N) ▸ ver / aprovar</b> para expandir os cards.","Localize a solicitação desejada e toque em <b>Analisar</b>.","No modal: selecione o status, preencha as datas se for Aprovar ou o motivo se for Rejeitar/Em ajuste.","Toque em <b>Confirmar</b>. O nome do responsável e a data/hora são gravados automaticamente."]},
+  {note:"A análise só fica disponível quando o Fluxo de Aprovação está 🔓 Liberado. Caso esteja bloqueado, contate o Gerente da Conta / Administrador."},
+  {h:"7. Gerenciando Itens do Plano"},
+  {p:"Cada solicitação pode ter <b>itens</b> associados — registros detalhados de equipamentos com seus respectivos planos e datas de execução."},
+  {sub:"Campos de um item"},
+  {table:{head:["Campo","Descrição / Exemplo"],rows:[
+    ["Equipamento","Tag ou identificação do equipamento (ex: TB01, BC-204)"],
+    ["Plano","Código ou descrição do plano de manutenção (ex: 2032, PM-ANUAL)"],
+    ["Início do Ciclo","Data de início do ciclo de manutenção (dd/mm/aaaa)"],
+    ["1ª Data Execução","Data prevista para a primeira execução do plano (dd/mm/aaaa)"]]}},
+  {sub:"Adicionar item manualmente"},
+  {u:["Na lista de solicitações, toque no botão <b>📎 N</b> (N = número de itens) para expandir a seção de itens.","Preencha os campos na linha em branco ao final da tabela.","Pressione <b>Enter</b> no último campo ou clique no botão <b>+</b> para adicionar."]},
+  {sub:"Excluir item"},
+  {u:["Somente <b>Administrador / Gerente da Conta</b> pode excluir itens.","Clique no ícone <b>✕</b> ao lado do item desejado."]},
+  {h:"8. Cronograma (Gantt)"},
+  {p:"O cronograma é gerado automaticamente a partir das solicitações que possuem <b>Data de Início</b> e <b>Previsão de Entrega</b> preenchidas pelo Responsável da Confiabilidade no momento da aprovação."},
+  {u:["Cada linha do Gantt corresponde a uma solicitação aprovada.","A barra colorida representa o período início → previsão de entrega.","A cor segue o status atual da solicitação (mesma legenda da lista).","O cronograma é <b>apenas para visualização</b> — para alterar datas, edite a solicitação pelo modal de análise.","Solicitações <b>sem datas</b> não aparecem no Gantt."]},
+  {note:"O eixo de tempo do Gantt é dimensionado automaticamente para cobrir o período total de todas as solicitações com datas."},
+  {h:"9. Importar e Exportar Itens via Excel"},
+  {p:"Para cadastrar muitos itens de uma vez, use a importação em massa por planilha Excel."},
+  {sub:"Exportar / Baixar modelo"},
+  {u:["Expanda os itens de uma solicitação (botão 📎).","Clique em <b>⬇ Baixar modelo</b>.","Um arquivo <code style='color:#60A5FA'>Modelo_Itens_Plano.xlsx</code> é baixado com os dados existentes (ou uma linha de exemplo).","Edite no Excel respeitando as colunas: <i>Equipamento, Plano, Início do Ciclo, 1ª Data Execução</i>."]},
+  {sub:"Importar planilha em massa"},
+  {u:["Expanda os itens da solicitação de destino.","Clique em <b>⬆ Importar planilha</b> e selecione o arquivo <code style='color:#60A5FA'>.xlsx</code>.","Os itens importados são <b>adicionados</b> aos existentes (não substituem).","Linhas sem Equipamento são ignoradas automaticamente.","Após importar, confira os dados na tabela de itens."]},
+  {note:"Use sempre o modelo baixado como base. Planilhas com colunas fora da ordem ou com nomes diferentes serão rejeitadas."},
+  {h:"10. Controle do Fluxo de Aprovação (Gerente / Admin)"},
+  {p:"O <b>Fluxo de Aprovação</b> é um interruptor global que controla se o Responsável da Confiabilidade pode ou não aprovar/rejeitar solicitações. Somente o <b>Gerente da Conta</b> ou o <b>Administrador</b> pode alterá-lo."},
+  {sub:"Como liberar ou bloquear o fluxo"},
+  {u:["Na tela Plano de Manutenção, localize o painel <b>Fluxo de Aprovação</b> (abaixo do título).","Clique em <b>🔓 Liberar fluxo</b> ou <b>🔒 Bloquear fluxo</b> (botão visível apenas para Gerente/Admin).","A alteração é imediata e reflete para todos os usuários conectados."]},
+  {table:{head:["Estado","Efeito"],rows:[
+    ["🔓 Liberado","O Responsável da Confiabilidade pode analisar (aprovar / ajustar / rejeitar) e editar o status de qualquer solicitação no cronograma."],
+    ["🔒 Bloqueado","Análises e edições de status ficam desabilitadas. Solicitações ainda podem ser criadas pela área operacional/técnica."]]}},
+  {h:"11. Perguntas Frequentes"},
+  {faq:[
+    ["Não consigo abrir o Plano de Manutenção — aparece 🔐.","Seu usuário não tem permissão. Toque no card e use 'Solicitar Acesso' para enviar uma requisição ao Gerente da Conta."],
+    ["Criei uma solicitação mas o Responsável não consegue aprovar.","O Fluxo de Aprovação está 🔒 Bloqueado. Peça ao Gerente da Conta / Administrador que o libere."],
+    ["O botão 'Analisar' não aparece na minha tela.","Esse botão é exibido apenas para usuários com nível de Edição no módulo Plano de Manutenção E com o Fluxo de Aprovação liberado."],
+    ["A solicitação sumiu do Gantt.","O Gantt só exibe solicitações com Data de Início e Previsão de Entrega preenchidas. Verifique se foi aprovada com ambas as datas."],
+    ["Importei a planilha mas nada foi adicionado.","Confira se o arquivo usa o modelo baixado em '⬇ Baixar modelo'. O cabeçalho deve ser exatamente: Equipamento, Plano, Início do Ciclo, 1ª Data Execução."],
+    ["Como excluir uma solicitação inteira?","A exclusão é restrita ao Administrador / Gerente da Conta. Para usuários comuns, a alternativa é alterar o status para 'Rejeitado' ou 'Concluído'."],
+    ["As datas dos itens aparecem no formato errado.","O sistema aceita datas em dd/mm/aaaa ou no formato serial do Excel (número). Garanta que a coluna de data não esteja como texto puro."]]}
+];
+const rb=(b,i)=>{
+  if(b.h)return<h3 key={i} style={cTitle}>{b.h}</h3>;
+  if(b.sub)return<h4 key={i} style={cSub}>{b.sub}</h4>;
+  if(b.p)return<p key={i} style={cP} {...H(b.p)}/>;
+  if(b.u)return<ul key={i} style={{margin:"6px 0",paddingLeft:20}}>{b.u.map((x,j)=><li key={j} style={cLi} {...H(x)}/>)}</ul>;
+  if(b.note)return<div key={i} style={cNote} {...H("ℹ️ "+b.note)}/>;
+  if(b.faq)return<div key={i} style={{margin:"6px 0"}}>{b.faq.map((qa,j)=><div key={j} style={{margin:"10px 0",paddingBottom:8,borderBottom:"1px solid rgba(30,58,95,.6)"}}><div style={{...cP,fontWeight:700,color:"#E2E8F0",margin:"0 0 2px"}} {...H("P: "+qa[0])}/><div style={{...cP,margin:0,color:"#94A3B8"}} {...H("R: "+qa[1])}/></div>)}</div>;
+  if(b.table)return<div key={i} style={{overflowX:"auto",margin:"10px 0"}}><table style={{borderCollapse:"collapse",width:"100%",minWidth:340}}><thead><tr>{b.table.head.map((hh,j)=><th key={j} style={cTh}>{hh}</th>)}</tr></thead><tbody>{b.table.rows.map((r,j)=><tr key={j}>{r.map((c,k)=><td key={k} style={cTd} {...H(c)}/>)}</tr>)}</tbody></table></div>;
+  return null;
+};
 return(<div className="fade-in">
 <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
   <button className="back-btn" onClick={()=>setDashPhase("procedimentos")}>← Voltar</button>
   <h2 style={{fontSize:16,fontWeight:700,color:"#CBD5E1",margin:0,flex:1}}><PMIcon n="book" s={16} style={{verticalAlign:"-2px",marginRight:6}}/>{m.title||""}</h2>
   {hasPdf&&<a href={m.data} download={(m.title||"Manual")+".pdf"} style={{background:"rgba(59,130,246,.2)",border:"1px solid rgba(59,130,246,.4)",color:"#60A5FA",padding:"8px 14px",borderRadius:8,fontSize:13,fontWeight:600,textDecoration:"none",whiteSpace:"nowrap"}}>⬇ Baixar PDF</a>}
 </div>
-{hasPdf
-  ?<iframe src={m.data} style={{width:"100%",height:"calc(100vh - 160px)",border:"1px solid #1E3A5F",borderRadius:10,display:"block"}} title={m.title||""}/>
-  :<div style={{display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:16,color:"#64748B",border:"1px dashed #1E3A5F",borderRadius:10,padding:48,minHeight:300}}>
-    <PMIcon n="book" s={48}/>
-    <p style={{margin:0,fontSize:14,textAlign:"center",maxWidth:380}}>PDF ainda não configurado. No <code style={{color:"#60A5FA"}}>index.html</code>, localize <code style={{color:"#60A5FA"}}>PROC_PDFS.confiabilidade.data</code> e substitua o valor vazio pela string completa do PDF em Base64 (<code style={{color:"#60A5FA"}}>data:application/pdf;base64,…</code>).</p>
-  </div>}
+<div style={{maxWidth:840,margin:"0 auto",background:"rgba(11,25,41,.45)",border:"1px solid #1E3A5F",borderRadius:12,padding:"18px 20px"}}>
+  {procManual==="confiabilidade"?MAN.map(rb):<p style={cP}>Manual não disponível.</p>}
+  <div style={{marginTop:18,paddingTop:12,borderTop:"1px solid #1E3A5F",fontSize:11.5,color:"#64748B",textAlign:"center",fontStyle:"italic"}}>RUMO Terminais · PM Manager — Manual de uso interno · Versão 1.0</div>
+</div>
 </div>);
 })()}
 
