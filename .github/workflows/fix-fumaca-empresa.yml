@@ -1,0 +1,24 @@
+name: Fix Fumaca Empresa Field
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Apply patch
+        run: python3 .github/fix_fumaca_empresa.py index.html
+      - name: Commit
+        run: |
+          git config user.email "noreply@anthropic.com"
+          git config user.name "Claude"
+          git add index.html
+          git diff --staged --quiet && echo 'Nothing to commit' || (
+            git commit -m "fix(fumaca): renomear Terminal->Empresa, usar empList dropdown" &&
+            git push origin main
+          )
